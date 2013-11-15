@@ -1,6 +1,7 @@
 require 'redisse/version'
 require 'server_sent_events'
 require 'redisse/publisher'
+require 'redis'
 
 # Public: A HTTP API to serve Server-Sent Events via a Redis backend.
 module Redisse

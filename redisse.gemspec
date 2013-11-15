@@ -22,4 +22,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec"
   spec.add_runtime_dependency "goliath"
   spec.add_runtime_dependency "em-hiredis"
+  spec.add_runtime_dependency "redis"
 end

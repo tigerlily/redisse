@@ -33,6 +33,9 @@ module Redisse
     # give a chance for several messages to be sent in a row.
     LONG_POLLING_DELAY = 1
 
+    # Public: The period between heartbeats in seconds.
+    HEARTBEAT_PERIOD = 15
+
     def initialize(redisse)
       @redisse = redisse
       super()
@@ -41,6 +44,7 @@ module Redisse
     def response(env)
       acceptable?(env) or return not_acceptable
       subscribe(env)
+      heartbeat(env)
       streaming_response(200, {
         'Content-Type' => 'text/event-stream',
         'Cache-Control' => 'no-cache',
@@ -66,6 +70,13 @@ module Redisse
       # Redis supports multiple channels for SUBSCRIBE but not em-hiredis
       channels.each do |channel|
         pubsub.subscribe(channel) { |event| send_event(env, event) }
+      end
+    end
+
+    def heartbeat(env)
+      EM.add_periodic_timer(HEARTBEAT_PERIOD) do
+        env.logger.debug "Sending heartbeat"
+        env.stream_send(": hb\n")
       end
     end
 

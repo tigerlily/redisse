@@ -45,7 +45,7 @@ module Redisse
     def response(env)
       acceptable?(env) or return not_acceptable
       subscribe(env)
-      heartbeat(env)
+      heartbeat(env) unless heartbeat_disabled
       streaming_response(200, {
         'Content-Type' => 'text/event-stream',
         'Cache-Control' => 'no-cache',
@@ -60,7 +60,11 @@ module Redisse
 
   private
 
-    attr_reader :redisse
+    attr_reader :redisse, :options
+
+    def heartbeat_disabled
+      !!options[:disable_heartbeat]
+    end
 
     def subscribe(env)
       status[:stats][EVENTS_CONNECTED] += 1

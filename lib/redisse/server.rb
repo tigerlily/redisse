@@ -7,8 +7,8 @@ require 'em-hiredis'
 module Redisse
 
   # Public: Run the server based on this API.
-  def run
-    api = Server.new(self)
+  def run(options = {})
+    api = Server.new(self, options)
     runner = Goliath::Runner.new(ARGV, api)
     runner.app = Goliath::Rack::Builder.build(self, api)
     runner.load_plugins(self.plugins.unshift(Server::Stats))
@@ -36,8 +36,9 @@ module Redisse
     # Public: The period between heartbeats in seconds.
     HEARTBEAT_PERIOD = 15
 
-    def initialize(redisse)
+    def initialize(redisse, options = {})
       @redisse = redisse
+      @options = options
       super()
     end
 

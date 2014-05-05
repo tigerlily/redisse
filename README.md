@@ -4,6 +4,26 @@ Redisse is a Redis-backed Ruby library for creating [Server-Sent
 Events](http://www.w3.org/TR/eventsource/), publishing them from your
 application, and serving them to your clients.
 
+## Rationale
+
+Redisse’s design comes from these requirements:
+
+* The client wants to listen to several channels but use only one connection.
+  (e.g. a single `EventSource` object is created in the browser but you want
+  events coming from different Redis channels.)
+
+* A server handles the concurrent connections so that the application servers
+  don't need to (e.g. Unicorn workers).
+
+* The application is written in Ruby, so there needs to be a Ruby API to
+  publish events.
+
+* The application is written on top of Rack, so the code that lists the Redis
+  Pub/Sub channels to subscribe to needs to be able to use Rack middlewares and
+  should receive a Rack environment. (e.g. you can use
+  [Warden](https://github.com/hassox/warden) as a middleware and simply use
+  `env['warden'].user` to decide which channels the user can access.)
+
 ## Installation
 
 Add this line to your application's Gemfile:

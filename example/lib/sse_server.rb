@@ -1,4 +1,5 @@
 require 'redisse'
+require 'rack'
 
 module SSEServer
   extend Redisse
@@ -7,6 +8,9 @@ module SSEServer
   self.default_port = 8082
 
   def self.channels(env)
-    %w[ global ]
+    env['rack.session']['channels'] ||=
+      %w[ global ] << "channel_#{rand 2}"
   end
+
+  use Rack::Session::Cookie, secret: 'not a secret'
 end

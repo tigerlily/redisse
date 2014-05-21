@@ -77,6 +77,17 @@ Send a Server-Sent Event:
     $ irb -rbundler/setup -Ilib -rsse_server
     > SSEServer.publish('global_events_channel', success: "It's working!")
 
+### Behind nginx
+
+You’ll want to redirect the SSE requests to the SSE server instead of your Rack
+application. You should disable buffering (`proxy_buffering off`) and close the
+connection to the server when the client disconnects
+(`proxy_ignore_client_abort on`) to preserve resources (otherwise connections
+to Redis will be kept alive longer than necessary).
+
+You can check the [nginx conf for the
+example](https://github.com/tigerlily/redisse/blob/master/example/nginx.conf).
+
 ## Contributing
 
 1. Fork it

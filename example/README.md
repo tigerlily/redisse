@@ -15,6 +15,6 @@ Finally run nginx to glue them together:
 Open [http://localhost:8080/](http://localhost:8080/) in multiple browsers and
 tabs and then send messages to see them replicated.
 
-A Rack session cookie is used to randomly select one of two channels
-(`channel_0` and `channel_1`) and simulate different access rights for
+A Rack session cookie is used to randomly select one of four channels
+(`channel_1` to `channel_4`) and simulate different access rights for
 different users of your application.

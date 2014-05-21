@@ -9,7 +9,7 @@ module SSEServer
 
   def self.channels(env)
     env['rack.session']['channels'] ||=
-      %w[ global ] << "channel_#{rand 2}"
+      %w[ global ] << "channel_#{rand(4)+1}"
   end
 
   use Rack::Session::Cookie, secret: 'not a secret'

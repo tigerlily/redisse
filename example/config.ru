@@ -1,5 +1,4 @@
 require 'bundler/setup'
-Bundler.require
 
 $: << __dir__ + '/lib'
 require 'sse_server'

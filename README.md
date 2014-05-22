@@ -57,7 +57,6 @@ Create a binary to serve it (e.g. in `bin/sse_server`):
     #!/usr/bin/env ruby
 
     require 'bundler/setup'
-    Bundler.require
 
     require_relative '../lib/sse_server'
     require 'redisse/server'

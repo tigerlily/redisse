@@ -43,7 +43,7 @@ module Redisse
 
     def response(env)
       acceptable?(env) or return not_acceptable
-      subscribe(env)
+      subscribe(env) or return not_found
       heartbeat(env)
       streaming_response(200, {
         'Content-Type' => 'text/event-stream',
@@ -63,8 +63,9 @@ module Redisse
 
     def subscribe(env)
       status[:stats][EVENTS_CONNECTED] += 1
-      env['server_sent_events.redis'] = pubsub = connect_pubsub
       channels = redisse.channels(env)
+      return if channels.nil? || channels.empty?
+      env['server_sent_events.redis'] = pubsub = connect_pubsub
       send_history_events(env, channels)
       env.logger.debug "Subscribing to #{channels}"
       # Redis supports multiple channels for SUBSCRIBE but not em-hiredis
@@ -164,6 +165,13 @@ module Redisse
         [
           "406 Not Acceptable\n",
           "This resource can only be represented as text/event-stream.\n"]]
+    end
+
+    def not_found
+      [404,
+       { 'Content-Type' => 'text/plain' },
+       [ "404 Not Found.\n" ]
+      ]
     end
 
   public

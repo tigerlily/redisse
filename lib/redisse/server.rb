@@ -6,24 +6,17 @@ require 'em-hiredis'
 
 module Redisse
 
-  # Public: Run the server based on this API.
+  # Public: Run the server.
   def run
-    api = Server.new(self)
-    runner = Goliath::Runner.new(ARGV, api)
-    runner.app = Goliath::Rack::Builder.build(self, api)
+    server = Server.new(self)
+    runner = Goliath::Runner.new(ARGV, server)
+    runner.app = Goliath::Rack::Builder.build(self, server)
     runner.load_plugins(self.plugins.unshift(Server::Stats))
     runner.run
   end
 
   class Server < Goliath::API
     require 'redisse/server/stats'
-
-    EVENTS_CONNECTED = "events.connected".freeze
-    EVENTS_SENT      = "events.sent".freeze
-    EVENTS_MISSED    = "events.missed".freeze
-
-    REDISSE_LONG_POLLING = "redisse.long_polling".freeze
-    REDISSE_LONG_POLLING_TIMER = "redisse.long_polling_timer".freeze
 
     # Public: Delay between receiving a message and closing the connection.
     #
@@ -62,7 +55,7 @@ module Redisse
     attr_reader :redisse
 
     def subscribe(env)
-      status[:stats][EVENTS_CONNECTED] += 1
+      status[:stats]["events.connected".freeze] += 1
       channels = redisse.channels(env)
       return if channels.nil? || channels.empty?
       env['server_sent_events.redis'] = pubsub = connect_pubsub
@@ -76,7 +69,7 @@ module Redisse
 
     def heartbeat(env)
       EM.add_periodic_timer(HEARTBEAT_PERIOD) do
-        env.logger.debug "Sending heartbeat"
+        env.logger.debug "Sending heartbeat".freeze
         env.stream_send(": hb\n")
       end
     end
@@ -84,23 +77,25 @@ module Redisse
     def unsubscribe(env)
       pubsub = env['server_sent_events.redis']
       return unless pubsub
+      env.logger.debug "Unsubscribing".freeze
       pubsub.close_connection
     end
 
     def send_event(env, event)
-      status[:stats][EVENTS_SENT] += 1
+      status[:stats]["events.sent".freeze] += 1
       env.logger.debug { "Sending:\n#{event.chomp.chomp}" }
       env.stream_send(event)
       return unless long_polling?(env)
-      env[REDISSE_LONG_POLLING_TIMER] ||= EM.add_timer(LONG_POLLING_DELAY) do
+      env["redisse.long_polling_timer".freeze] ||= EM.add_timer(LONG_POLLING_DELAY) do
         env.stream_close
       end
     end
 
     def long_polling?(env)
-      env.fetch(REDISSE_LONG_POLLING) do
+      key = "redisse.long_polling".freeze
+      env.fetch(key) do
         query_string = env['QUERY_STRING']
-        env[REDISSE_LONG_POLLING] = query_string && query_string.include?('polling')
+        env[key] = query_string && query_string.include?('polling')
       end
     end
 
@@ -114,12 +109,11 @@ module Redisse
       end
     end
 
-    LAST_EVENT_ID_QUERY_PARAM_REGEXP = /(?:^|\&)lastEventId=([^\&\n]*)/
-
     def last_event_id(env)
+      regexp = /(?:^|\&)lastEventId=([^\&\n]*)/
       last_event_id = env['HTTP_LAST_EVENT_ID'] ||
         env['QUERY_STRING'] &&
-        env['QUERY_STRING'][LAST_EVENT_ID_QUERY_PARAM_REGEXP, 1]
+        env['QUERY_STRING'][regexp, 1]
       last_event_id = last_event_id.to_i
       last_event_id.nonzero? && last_event_id
     end
@@ -138,7 +132,7 @@ module Redisse
       if first_event_id == last_event_id
         events_with_ids.shift
       else
-        status[:stats][EVENTS_MISSED] += 1
+        status[:stats]["events.missed".freeze] += 1
         event = ServerSentEvents.server_sent_event(nil, type: :missedevents)
         events_with_ids.unshift([event])
       end

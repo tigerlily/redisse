@@ -8,11 +8,43 @@ module Redisse
 
   # Public: Run the server.
   def run
-    server = Server.new(self)
+    server = Server.new(self, api)
     runner = Goliath::Runner.new(ARGV, server)
     runner.app = Goliath::Rack::Builder.build(self, server)
     runner.load_plugins(self.plugins.unshift(Server::Stats))
     runner.run
+  end
+
+private
+
+  # Private: An object that returns channels from a Rack env.
+  #
+  # The returned object is used by Redisse::Server to determine the list of
+  # channels to subscribe to.
+  #
+  # By default, it returns self, so your module's `channels` method is called
+  # directly.
+  #
+  # If nginx_internal_url is set, the channels will actually come from the
+  # internal redirect URL generated in the Rack app by
+  # Redisse#redirect_endpoint.
+  def api
+    if nginx_internal_url
+      FromQueryString.new
+    else
+      self
+    end
+  end
+
+  class FromQueryString
+    def channels(env)
+      query_string = env['QUERY_STRING'] || ''
+      channels = query_string.split('&').map { |channel|
+        URI.decode_www_form_component(channel)
+      }
+      channels.delete('polling')
+      channels.delete_if {|channel| channel.start_with?('lastEventId=') }
+    end
   end
 
   class Server < Goliath::API
@@ -29,8 +61,9 @@ module Redisse
     # Public: The period between heartbeats in seconds.
     HEARTBEAT_PERIOD = 15
 
-    def initialize(redisse)
+    def initialize(redisse, api)
       @redisse = redisse
+      @api = api
       super()
     end
 
@@ -55,7 +88,7 @@ module Redisse
 
     def subscribe(env)
       status[:stats]["events.connected".freeze] += 1
-      channels = redisse.channels(env)
+      channels = @api.channels(env)
       return if channels.nil? || channels.empty?
       env['server_sent_events.redis'] = pubsub = connect_pubsub
       send_history_events(env, channels)

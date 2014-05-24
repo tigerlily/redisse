@@ -29,6 +29,21 @@ Redisse’s design comes from these requirements:
   [Warden](https://github.com/hassox/warden) as a middleware and simply use
   `env['warden'].user` to decide which channels the user can access.)
 
+### Redirect endpoint
+
+The simplest way that last point can be fulfilled is by actually loading and
+running your code in the Redisse server. Unfortunately since it’s
+EventMachine-based, if your method takes a while to returns the channels, all
+the other connected clients will be blocked too. You'll also have some
+duplication between your [Rack config](https://github.com/tigerlily/redisse/blob/9052630e57081714365188a8f55f0549aee03d56/example/config.ru#L30)
+and [Redisse server config](https://github.com/tigerlily/redisse/blob/9052630e57081714365188a8f55f0549aee03d56/example/lib/sse_server.rb#L15).
+
+Another way if you use nginx is instead to use a endpoint in your main
+application that will use the header X-Accel-Redirect to redirect to the
+Redisse server, which is now free from your blocking code. The channels will be
+sent instead via the redirect URL. See the [section on nginx](#behind-nginx)
+for more info.
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -62,6 +77,12 @@ Create a binary to serve it (e.g. in `bin/sse_server`):
     require 'redisse/server'
     SSEServer.run
 
+Use the endpoint in your main application (in config.ru or your router):
+
+    map "/events" do
+      run SSEServer.redirect_endpoint
+    end
+
 Run it:
 
     $ chmod u+x bin/sse_server
@@ -78,14 +99,25 @@ Send a Server-Sent Event:
 
 ### Behind nginx
 
-You’ll want to redirect the SSE requests to the SSE server instead of your Rack
-application. You should disable buffering (`proxy_buffering off`) and close the
-connection to the server when the client disconnects
-(`proxy_ignore_client_abort on`) to preserve resources (otherwise connections
-to Redis will be kept alive longer than necessary).
+When running behind nginx as a reverse proxy, you should disable buffering
+(`proxy_buffering off`) and close the connection to the server when the client
+disconnects (`proxy_ignore_client_abort on`) to preserve resources (otherwise
+connections to Redis will be kept alive longer than necessary).
 
-You can check the [nginx conf for the
-example](https://github.com/tigerlily/redisse/blob/master/example/nginx.conf).
+You should take advantage of the [redirect endpoint](#redirect-endpoint)
+instead of directing the SSE requests to the SSE server. Let your Rack
+application determine the channels, but have the request served by the SSE
+server with a redirect (X-Accel-Redirect) to an internal location.
+
+In this case, and if you have a large number of long-named channels, the
+internal redirect URL will be long and you might need to increase
+`proxy_buffer_size` from its default in your Rack application location
+configuration. For example, 8k will allow you about 200 channels with UUIDs as
+names, which is quite a lot.
+
+You can check the [nginx conf of the
+example](https://github.com/tigerlily/redisse/blob/master/example/nginx.conf)
+for all the details.
 
 ## Contributing
 

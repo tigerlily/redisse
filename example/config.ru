@@ -28,4 +28,7 @@ end
 
 use Rack::Session::Cookie, secret: 'not a secret'
 use Rack::Static, urls: {"/" => 'index.html'}, root: 'public', index: 'index.html'
+map "/events" do
+  run SSEServer.redirect_endpoint
+end
 run Application.new

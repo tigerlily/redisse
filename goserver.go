@@ -1,9 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"runtime"
 
@@ -11,37 +11,31 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+var redisAddr string
+
 func main() {
+	flag.StringVar(&redisAddr, "redis", ":6379", "Redis server URL")
+	flag.Parse()
+	fmt.Println(redisAddr)
+	addr := flag.Arg(0)
+	if addr == "" {
+		addr = ":8082"
+	}
 	http.HandleFunc("/", response)
-	log.Fatal(http.ListenAndServe(":8082", nil))
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
 const eventStreamMediaType = "text/event-stream"
 
-type stream interface {
-	http.ResponseWriter
-	http.Flusher
-	http.CloseNotifier
-}
-
 func response(w http.ResponseWriter, r *http.Request) {
+	fmt.Print("+")
 	if !isAcceptable(r) {
 		notAcceptable(w)
 		return
 	}
-	s, ok := w.(stream)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-	s.Header().Set("Content-Type", "text/event-stream")
-	s.Header().Set("Cache-Control", "no-cache")
-	s.Header().Set("Connection", "keep-alive")
-	s.Header().Set("X-Accel-Buffering", "no")
-	s.WriteHeader(http.StatusOK)
-	s.Flush()
+	s := startStream(w)
 	subscribe(s, r)
-	fmt.Printf("No of goroutines: %v\n", runtime.NumGoroutine())
+	fmt.Print("-", runtime.NumGoroutine())
 }
 
 func isAcceptable(r *http.Request) bool {
@@ -59,46 +53,20 @@ func notAcceptable(w http.ResponseWriter) {
 }
 
 func connectPubSub() (*redis.PubSubConn, error) {
-	address := "localhost:6379"
-	conn, err := redis.Dial("tcp", address)
+	conn, err := redis.Dial("tcp", redisAddr)
 	if err != nil {
-		panic(fmt.Sprintf("Connection failed: %s", address))
+		panic(fmt.Sprintf("Connection failed: %s", redisAddr))
 	}
 	return &redis.PubSubConn{conn}, err
 }
 
 func subscribe(s stream, r *http.Request) {
-	//connectionClosed := s.CloseNotify()
-
 	pubsub, _ := connectPubSub()
-	defer func() {
-		fmt.Printf("Closing PubSub connection\n")
-		pubsub.Close()
-	}()
-
-	//messages, done := receive(pubsub, "global", "other")
-
-	channels := []string{"global", "other"}
+	defer pubsub.Close()
+	channels := channels(r)
 	for message := range receiveUntil(pubsub, s.CloseNotify(), channels...) {
-		fmt.Fprintf(s, message)
-		s.Flush()
+		s.streamSend(message)
 	}
-
-	//Loop:
-	//	for {
-	//		select {
-	//		case message := <-messages:
-	//			fmt.Fprintf(s, message)
-	//			s.Flush()
-	//		case <-connectionClosed:
-	//			fmt.Printf("HTTP connection closed\n")
-	//			fmt.Printf("Unsubscribing\n")
-	//			pubsub.Unsubscribe()
-	//			break Loop
-	//		}
-	//	}
-	//	<-done
-	fmt.Printf("Over\n")
 }
 
 func receiveUntil(pubsub *redis.PubSubConn, stop <-chan bool, channels ...string) <-chan string {
@@ -106,7 +74,6 @@ func receiveUntil(pubsub *redis.PubSubConn, stop <-chan bool, channels ...string
 	go func() {
 		defer close(messages)
 		for {
-			fmt.Printf(".")
 			switch n := pubsub.Receive().(type) {
 			case redis.Message:
 				fmt.Printf("Message: %s %s\n", n.Channel, n.Data)
@@ -124,7 +91,6 @@ func receiveUntil(pubsub *redis.PubSubConn, stop <-chan bool, channels ...string
 			default:
 				fmt.Printf("?? %s\n", n)
 			}
-			fmt.Println("end of for loop")
 		}
 	}()
 	go func() {
@@ -138,46 +104,32 @@ func receiveUntil(pubsub *redis.PubSubConn, stop <-chan bool, channels ...string
 	return messages
 }
 
-func keepLooping(err net.Error, stop <-chan bool) bool {
-	if err.Timeout() {
-		fmt.Println("timeout")
-		select {
-		case <-stop:
-			return false
-		default:
-		}
-	}
-	return true
+func channels(r *http.Request) []string {
+	return []string{"global", "other", "all"}
 }
 
-//func receive(pubsub *redis.PubSubConn, channels ...string) (<-chan string, chan bool) {
-//	messages := make(chan string)
-//	done := make(chan bool)
-//	go func() {
-//		defer close(messages)
-//		defer func() {
-//			done <- true
-//		}()
-//		for {
-//			switch n := pubsub.Receive().(type) {
-//			case redis.Message:
-//				fmt.Printf("Message: %s %s\n", n.Channel, n.Data)
-//				messages <- string(n.Data)
-//			case redis.Subscription:
-//				fmt.Printf("%v\n", n)
-//				if n.Count == 0 {
-//					return
-//				}
-//			case error:
-//				fmt.Printf("error: %v\n", n)
-//				return
-//			default:
-//				fmt.Printf("?? %s\n", n)
-//			}
-//		}
-//	}()
-//	for _, channel := range channels {
-//		pubsub.Subscribe(channel)
-//	}
-//	return messages, done
-//}
+// HTTP stream
+
+type streamer interface {
+	http.ResponseWriter
+	http.Flusher
+	http.CloseNotifier
+}
+
+type stream struct {
+	streamer
+}
+
+func startStream(w http.ResponseWriter) stream {
+	s := stream{w.(streamer)}
+	s.Header().Set("Content-Type", "text/event-stream")
+	s.Header().Set("Cache-Control", "no-cache")
+	s.WriteHeader(http.StatusOK)
+	s.Flush()
+	return s
+}
+
+func (s stream) streamSend(str string) {
+	fmt.Fprint(s, str)
+	s.Flush()
+}

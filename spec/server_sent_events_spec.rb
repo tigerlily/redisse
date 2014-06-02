@@ -1,7 +1,7 @@
 require 'spec_helper'
-require_relative '../lib/server_sent_events'
+require_relative '../lib/redisse/server_sent_events'
 
-describe ServerSentEvents do
+describe Redisse::ServerSentEvents do
 
   include described_class
 

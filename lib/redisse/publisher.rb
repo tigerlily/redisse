@@ -1,3 +1,5 @@
+require 'redisse/server_sent_events'
+
 module Redisse
   class RedisPublisher
     include ServerSentEvents

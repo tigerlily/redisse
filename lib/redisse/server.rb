@@ -134,7 +134,8 @@ module Redisse
     end
 
     def handle_missing_events(events_with_ids, last_event_id)
-      first_event_id = events_with_ids.first.last
+      first_event, first_event_id = events_with_ids.first
+      return unless first_event
       if first_event_id == last_event_id
         events_with_ids.shift
       else

@@ -4,6 +4,7 @@ module Redisse
   module_function
 
     def server_sent_event(data, type: nil, id: nil, **options)
+      data = String(data)
       str = ''
       str << "retry: #{options[:retry]}\n" if options[:retry]
       str << "id: #{id}\n" if id

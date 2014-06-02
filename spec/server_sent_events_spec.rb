@@ -10,6 +10,20 @@ describe Redisse::ServerSentEvents do
       to match(/\Adata: ?foobar\n\n\z/)
   end
 
+  it "outputs the empty string with nil data" do
+    expect(server_sent_event(nil)).
+      to match(/\Adata: ?\n\n\z/)
+  end
+
+  it "uses data as a String" do
+    object = Object.new
+    def object.to_s
+      "data"
+    end
+    expect(server_sent_event(object)).
+      to match(/\Adata: ?data\n\n\z/)
+  end
+
   it "outputs a Server-Sent Event with type" do
     event = server_sent_event('foo', type: :event_type_foo)
     expect(event).

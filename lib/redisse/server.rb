@@ -55,7 +55,7 @@ module Redisse
     attr_reader :redisse
 
     def subscribe(env)
-      status[:stats]["events.connected".freeze] += 1
+      env.status[:stats]["events.connected".freeze] += 1
       channels = redisse.channels(env)
       return if channels.nil? || channels.empty?
       env['server_sent_events.redis'] = pubsub = connect_pubsub
@@ -88,7 +88,7 @@ module Redisse
     end
 
     def send_event(env, event)
-      status[:stats]["events.sent".freeze] += 1
+      env.status[:stats]["events.sent".freeze] += 1
       env.logger.debug { "Sending:\n#{event.chomp.chomp}" }
       env.stream_send(event)
       return unless long_polling?(env)
@@ -108,7 +108,7 @@ module Redisse
     def send_history_events(env, channels)
       last_event_id = last_event_id(env)
       return unless last_event_id
-      EM.next_tick do
+      EM::Synchrony.next_tick do
         events = events_for_channels(channels, last_event_id)
         env.logger.debug "Sending #{events.size} history events"
         events.each { |event| send_event(env, event) }
@@ -139,14 +139,22 @@ module Redisse
       if first_event_id == last_event_id
         events_with_ids.shift
       else
-        status[:stats]["events.missed".freeze] += 1
+        env.status[:stats]["events.missed".freeze] += 1
         event = ServerSentEvents.server_sent_event(nil, type: :missedevents)
         events_with_ids.unshift([event])
       end
     end
 
     def events_for_channel(channel, last_event_id)
-      redisse.redis.zrangebyscore(channel, last_event_id, '+inf', with_scores: true)
+      df = redis.zrangebyscore(channel, last_event_id, '+inf', 'withscores')
+      events_scores = EM::Synchrony.sync(df)
+      events_scores.each_slice(2).map do |event, score|
+        [event, score.to_i]
+      end
+    end
+
+    def redis
+      @redis ||= EM::Hiredis.connect(redisse.redis_server)
     end
 
     def connect_pubsub

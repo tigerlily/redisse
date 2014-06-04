@@ -35,8 +35,10 @@ module Redisse
     end
 
     def response(env)
-      acceptable?(env) or return not_acceptable
-      subscribe(env) or return not_found
+      return not_acceptable unless acceptable?(env)
+      channels = Array(redisse.channels(env))
+      return not_found if channels.empty?
+      subscribe(env, channels)
       heartbeat(env)
       streaming_response(200, {
         'Content-Type' => 'text/event-stream',
@@ -54,10 +56,8 @@ module Redisse
 
     attr_reader :redisse
 
-    def subscribe(env)
+    def subscribe(env, channels)
       env.status[:stats]["events.connected".freeze] += 1
-      channels = redisse.channels(env)
-      return if channels.nil? || channels.empty?
       pubsub = connect_pubsub(env)
       send_history_events(env, channels)
       env.logger.debug "Subscribing to #{channels}"

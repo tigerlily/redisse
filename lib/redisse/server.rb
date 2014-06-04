@@ -175,18 +175,18 @@ module Redisse
     end
 
     def not_acceptable
-      [406,
-        { 'Content-Type' => 'text/plain' },
-        [
-          "406 Not Acceptable\n",
-          "This resource can only be represented as text/event-stream.\n"]]
+      Rack::Response.new(
+        "406 Not Acceptable\n" \
+        "This resource can only be represented as text/event-stream.\n",
+        406,
+        'Content-Type' => 'text/plain')
     end
 
     def not_found
-      [404,
-       { 'Content-Type' => 'text/plain' },
-       [ "404 Not Found.\n" ]
-      ]
+      Rack::Response.new(
+        "404 Not Found.\n",
+        404,
+        'Content-Type' => 'text/plain')
     end
 
   public

@@ -68,14 +68,14 @@ module Redisse
     end
 
     def heartbeat(env)
-      env['redisse.heartbeat_timer'] = EM.add_periodic_timer(HEARTBEAT_PERIOD) do
+      env['redisse.heartbeat_timer'.freeze] = EM.add_periodic_timer(HEARTBEAT_PERIOD) do
         env.logger.debug "Sending heartbeat".freeze
-        env.stream_send(": hb\n")
+        env.stream_send(": hb\n".freeze)
       end
     end
 
     def stop_heartbeat(env)
-      return unless timer = env['redisse.heartbeat_timer']
+      return unless timer = env['redisse.heartbeat_timer'.freeze]
       env.logger.debug "Stopping heartbeat".freeze
       timer.cancel
     end

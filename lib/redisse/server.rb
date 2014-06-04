@@ -62,8 +62,12 @@ module Redisse
       send_history_events(env, channels)
       env.logger.debug "Subscribing to #{channels}"
       # Redis supports multiple channels for SUBSCRIBE but not em-hiredis
+      env['redisse.subscribe_proc'.freeze] = env_sender = -> event do
+        send_event(env, event)
+      end
+      env['redisse.channels'.freeze] = channels
       channels.each do |channel|
-        pubsub.subscribe(channel) { |event| send_event(env, event) }
+        pubsub.subscribe(channel, env_sender)
       end
     end
 
@@ -84,7 +88,11 @@ module Redisse
       return unless pubsub = env['redisse.pubsub'.freeze]
       env['redisse.pubsub'.freeze] = nil
       env.logger.debug "Unsubscribing".freeze
-      pubsub.close_connection
+      subscribe_proc = env['redisse.subscribe_proc'.freeze]
+      channels = env['redisse.channels'.freeze]
+      channels.each do |channel|
+        pubsub.unsubscribe_proc(channel, subscribe_proc)
+      end
     end
 
     def send_event(env, event)
@@ -158,9 +166,7 @@ module Redisse
     end
 
     def connect_pubsub(env)
-      client = EM::Hiredis::PubsubClient.new
-      client.configure(redisse.redis_server)
-      env['redisse.pubsub'.freeze] = client.connect
+      env['redisse.pubsub'.freeze] = redis.pubsub
     end
 
     def acceptable?(env)

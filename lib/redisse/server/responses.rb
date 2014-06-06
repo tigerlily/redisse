@@ -14,5 +14,9 @@ module Redisse
     def not_found
       plain_response 404
     end
+
+    def service_unavailable
+      plain_response 503
+    end
   end
 end

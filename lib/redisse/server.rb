@@ -19,6 +19,8 @@ module Redisse
     require 'redisse/server/stats'
     require 'redisse/server/responses'
     include Responses
+    require 'redisse/server/redis'
+    include Redis
 
     # Public: Delay between receiving a message and closing the connection.
     #
@@ -40,7 +42,7 @@ module Redisse
       return not_acceptable unless acceptable?(env)
       channels = Array(redisse.channels(env))
       return not_found if channels.empty?
-      subscribe(env, channels)
+      subscribe(env, channels) or return service_unavailable
       heartbeat(env)
       streaming_response(200, {
         'Content-Type' => 'text/event-stream',
@@ -60,17 +62,15 @@ module Redisse
 
     def subscribe(env, channels)
       env.status[:stats]["events.connected".freeze] += 1
-      pubsub = connect_pubsub(env)
+      return unless pubsub { env.stream_close }
       send_history_events(env, channels)
       env.logger.debug "Subscribing to #{channels}"
-      # Redis supports multiple channels for SUBSCRIBE but not em-hiredis
-      env['redisse.subscribe_proc'.freeze] = env_sender = -> event do
-        send_event(env, event)
+      env_sender = -> event { send_event(env, event) }
+      pubsub_subcribe(channels, env_sender)
+      env['redisse.unsubscribe'.freeze] = -> do
+        pubsub_unsubscribe_proc(channels, env_sender)
       end
-      env['redisse.channels'.freeze] = channels
-      channels.each do |channel|
-        pubsub.subscribe(channel, env_sender)
-      end
+      true
     end
 
     def heartbeat(env)
@@ -87,14 +87,10 @@ module Redisse
     end
 
     def unsubscribe(env)
-      return unless pubsub = env['redisse.pubsub'.freeze]
-      env['redisse.pubsub'.freeze] = nil
+      return unless unsubscribe = env['redisse.unsubscribe'.freeze]
+      env['redisse.unsubscribe'.freeze] = nil
       env.logger.debug "Unsubscribing".freeze
-      subscribe_proc = env['redisse.subscribe_proc'.freeze]
-      channels = env['redisse.channels'.freeze]
-      channels.each do |channel|
-        pubsub.unsubscribe_proc(channel, subscribe_proc)
-      end
+      unsubscribe.call
     end
 
     def send_event(env, event)
@@ -161,14 +157,6 @@ module Redisse
       events_scores.each_slice(2).map do |event, score|
         [event, score.to_i]
       end
-    end
-
-    def redis
-      @redis ||= EM::Hiredis.connect(redisse.redis_server)
-    end
-
-    def connect_pubsub(env)
-      env['redisse.pubsub'.freeze] = redis.pubsub
     end
 
     def acceptable?(env)

@@ -23,7 +23,7 @@
   var xhr = new XMLHttpRequest()
   xhr.open('GET', '/subscriptions', false)
   xhr.send(null)
-  subscriptions.innerText = xhr.responseText
+  subscriptions.innerHTML = xhr.responseText
 
   var form = document.getElementById('publish')
   form.addEventListener('submit', function(e) {
@@ -38,7 +38,7 @@
   var log = document.getElementById('log')
   var source = new EventSource('/events')
   source.addEventListener('message', function(e) {
-    log.innerText += e.data + "\n"
+    log.innerHTML += e.data + "\n"
   }, false)
 </script>
 

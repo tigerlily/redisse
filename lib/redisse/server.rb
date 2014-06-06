@@ -17,6 +17,8 @@ module Redisse
 
   class Server < Goliath::API
     require 'redisse/server/stats'
+    require 'redisse/server/responses'
+    include Responses
 
     # Public: Delay between receiving a message and closing the connection.
     #
@@ -172,21 +174,6 @@ module Redisse
     def acceptable?(env)
       accept_media_types = Rack::AcceptMediaTypes.new(env['HTTP_ACCEPT'])
       accept_media_types.include?('text/event-stream')
-    end
-
-    def not_acceptable
-      Rack::Response.new(
-        "406 Not Acceptable\n" \
-        "This resource can only be represented as text/event-stream.\n",
-        406,
-        'Content-Type' => 'text/plain')
-    end
-
-    def not_found
-      Rack::Response.new(
-        "404 Not Found.\n",
-        404,
-        'Content-Type' => 'text/plain')
     end
 
   public

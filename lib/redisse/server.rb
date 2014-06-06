@@ -106,8 +106,7 @@ module Redisse
     def long_polling?(env)
       key = "redisse.long_polling".freeze
       env.fetch(key) do
-        query_string = env['QUERY_STRING']
-        env[key] = query_string && query_string.include?('polling')
+        env[key] = Rack::Request.new(env).GET.keys.include?('polling')
       end
     end
 

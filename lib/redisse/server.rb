@@ -52,6 +52,8 @@ module Redisse
     end
 
     def on_close(env)
+      env.status[:stats][:connected] -= 1
+      env.status[:stats][:served]    += 1
       unsubscribe(env)
       stop_heartbeat(env)
     end
@@ -61,10 +63,10 @@ module Redisse
     attr_reader :redisse
 
     def subscribe(env, channels)
-      env.status[:stats]["events.connected".freeze] += 1
       return unless pubsub { env.stream_close }
+      env.status[:stats][:connected] += 1
       send_history_events(env, channels)
-      env.logger.debug "Subscribing to #{channels}"
+      env.logger.debug { "Subscribing to #{channels}" }
       env_sender = -> event { send_event(env, event) }
       pubsub_subcribe(channels, env_sender)
       env['redisse.unsubscribe'.freeze] = -> do
@@ -94,7 +96,7 @@ module Redisse
     end
 
     def send_event(env, event)
-      env.status[:stats]["events.sent".freeze] += 1
+      env.status[:stats][:events] += 1
       env.logger.debug { "Sending:\n#{event.chomp.chomp}" }
       env.stream_send(event)
       return unless long_polling?(env)
@@ -115,7 +117,10 @@ module Redisse
       return unless last_event_id
       EM::Synchrony.next_tick do
         events = events_for_channels(channels, last_event_id)
-        env.logger.debug "Sending #{events.size} history events"
+        env.logger.debug { "Sending #{events.size} history events" }
+        if (first = events.first) && first.start_with?('type: missedevents')
+          env.status[:stats][:missing] += 1
+        end
         events.each { |event| send_event(env, event) }
       end
     end
@@ -142,7 +147,6 @@ module Redisse
       if first_event_id == last_event_id
         events_with_ids.shift
       else
-        env.status[:stats]["events.missed".freeze] += 1
         event = ServerSentEvents.server_sent_event(nil, type: :missedevents)
         events_with_ids.unshift([event])
       end

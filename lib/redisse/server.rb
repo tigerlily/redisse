@@ -121,10 +121,8 @@ module Redisse
     end
 
     def last_event_id(env)
-      regexp = /(?:^|\&)lastEventId=([^\&\n]*)/
       last_event_id = env['HTTP_LAST_EVENT_ID'] ||
-        env['QUERY_STRING'] &&
-        env['QUERY_STRING'][regexp, 1]
+        Rack::Request.new(env).GET['lastEventId']
       last_event_id = last_event_id.to_i
       last_event_id.nonzero? && last_event_id
     end

@@ -4,10 +4,28 @@ Redisse is a Redis-backed Ruby library for creating [Server-Sent
 Events](http://www.w3.org/TR/eventsource/), publishing them from your
 application, and serving them to your clients.
 
-SSE allows to type your events and Redisse doesn't use this so you can use it
-for your application code, but keep in mind that any client will receive events
-for all the different types. To handle access rights, where some users can see
-some events, use channels instead.
+## Features
+
+* Pub/Sub split into **channels** for privacy & access rights handling.
+
+* **SSE history** via the `Last-Event-Id` header and the `lastEventId` query
+  parameter, with a limit of 100 events per channel.
+
+* **Long-polling** via the `polling` query parameter. Allows to send several
+  events at once for long-polling clients by waiting one second before closing
+  the connection.
+
+* **Lightweight**: only one Redis connection for history and one for all
+  subscriptions, no matter the number of connected clients.
+
+* **`missedevents` event fired** when the full requested history could not be
+  found, to allow the client to handle the case where events were missed.
+
+* **Event types** from SSE are left untouched for your application code, but
+  keep in mind that a client will receive events of all types from their
+  channels.
+
+  To handle access rights, use channels instead.
 
 ## Rationale
 
@@ -48,7 +66,7 @@ for more info.
 
 Add this line to your application's Gemfile:
 
-    gem 'redisse', github: 'tigerlily/redisse', tag: 'v0.0.1'
+    gem 'redisse', github: 'tigerlily/redisse', tag: 'v0.2.0'
 
 ## Usage
 

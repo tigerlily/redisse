@@ -1,13 +1,27 @@
 require 'spec_helper'
-require_relative '../lib/server_sent_events'
+require_relative '../lib/redisse/server_sent_events'
 
-describe ServerSentEvents do
+describe Redisse::ServerSentEvents do
 
   include described_class
 
   it "outputs a basic Server-Sent Event" do
     expect(server_sent_event('foobar')).
       to match(/\Adata: ?foobar\n\n\z/)
+  end
+
+  it "outputs the empty string with nil data" do
+    expect(server_sent_event(nil)).
+      to match(/\Adata: ?\n\n\z/)
+  end
+
+  it "uses data as a String" do
+    object = Object.new
+    def object.to_s
+      "data"
+    end
+    expect(server_sent_event(object)).
+      to match(/\Adata: ?data\n\n\z/)
   end
 
   it "outputs a Server-Sent Event with type" do

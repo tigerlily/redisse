@@ -1,5 +1,4 @@
 require 'redisse/version'
-require 'server_sent_events'
 require 'redisse/publisher'
 require 'redis'
 

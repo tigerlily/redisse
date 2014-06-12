@@ -28,11 +28,9 @@ module Redisse
     def redirect_options(env)
       params = URI.decode_www_form(env['QUERY_STRING'])
       [].tap do |options|
-        if params.assoc('polling'.freeze)
-          options << 'polling'.freeze
-          last_event_id_param = params.assoc('lastEventId')
-          options << last_event_id_param if last_event_id_param
-        end
+        options << 'polling'.freeze if params.assoc('polling'.freeze)
+        last_event_id_param = params.assoc('lastEventId')
+        options << last_event_id_param if last_event_id_param
       end
     end
 

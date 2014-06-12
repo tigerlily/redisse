@@ -73,6 +73,11 @@ describe "Redirect endpoint" do
   end
 
   describe "query params" do
+    it "passes the lastEventId param" do
+      params = redirect_params('/?lastEventId=42')
+      expect(params.assoc('lastEventId')).not_to be_nil
+    end
+
     it "passes the polling param" do
       params = redirect_params('/?polling')
       expect(params.assoc('polling')).not_to be_nil

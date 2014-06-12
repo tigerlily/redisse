@@ -66,44 +66,88 @@ module Redisse
   #   def channels(env)
   #     %w( comment post )
   #   end
-  #
-  #   # will result in: SUBSCRIBE comment post
+  #   # will result in subscriptions to 'comment' and 'post' channels.
   #
   # Returns an Array of String naming the channels to subscribe to.
   def channels(env)
     raise NotImplementedError, "you must implement #{self}.channels"
   end
 
-  def redis
-    @redis ||= Redis.new(url: redis_server)
-  end
-
+  # Public: Use test mode.
+  #
+  # Instead of actually publishing to Redis, events will be stored in
+  # {#published} to use for tests.
+  #
+  # Must be called before each test in order for published events to be
+  # emptied.
+  #
+  # See also {#test_filter=}.
+  #
+  # Examples
+  #
+  #   # RSpec
+  #   before { Events.test_mode! }
   def test_mode!
     @publisher = TestPublisher.new
   end
 
+  # Public: Filter events stored in test mode.
+  #
+  # If set, only events whose type match with the filter are stored in
+  # {#published}. A filter matches by using case equality, which allows using
+  # a simple Symbol or a Proc for more advanced filters:
+  #
+  # Automatically sets {#test_mode!}, so it also clears the previous events.
+  #
+  # Examples
+  #
+  #   Events.test_filter = -> type { %i(foo baz).include? type }
+  #   Events.publish :global, foo: 'stored'
+  #   Events.publish :global, bar: 'skipped'
+  #   Events.publish :global, baz: 'stored'
+  #   Events.published.size # => 2
   def test_filter=(filter)
     test_mode!
     publisher.filter = filter
   end
 
+  # Public: Returns the published events.
+  #
+  # Fails unless {#test_mode!} is set.
   def published
     fail "Call #{self}.test_mode! first" unless publisher.respond_to?(:published)
     publisher.published
   end
 
+  # Internal: List of middlewares defined with {#use}.
+  #
+  # Used by Goliath to build the server.
   def middlewares
     @middlewares ||= []
   end
 
+  # Public: Define a middleware for the server.
+  #
+  # See {https://github.com/postrank-labs/goliath/wiki/Middleware Goliath middlewares}.
+  #
+  # Examples
+  #
+  #    module Events
+  #      extend Redisse
+  #      use MyMiddleware, foo: true
+  #    end
   def use(middleware, *args, &block)
     middlewares << [middleware, args, block]
   end
 
+  # Public: Define a Goliath plugin to run with the server.
+  #
+  # See {https://github.com/postrank-labs/goliath/wiki/Plugins Goliath plugins}.
   def plugin(name, *args)
     plugins << [name, args]
   end
 
+  # Internal: List of Goliath plugins to run with the server.
   def plugins
     @plugins ||= []
   end
@@ -114,4 +158,7 @@ private
     @publisher ||= RedisPublisher.new(redis)
   end
 
+  def redis
+    @redis ||= Redis.new(url: redis_server)
+  end
 end

@@ -4,6 +4,9 @@ Redisse is a Redis-backed Ruby library for creating [Server-Sent
 Events](http://www.w3.org/TR/eventsource/), publishing them from your
 application, and serving them to your clients.
 
+* **Homepage:** https://github.com/tigerlily/redisse
+* **Documentation:** http://rubydoc.info/github/tigerlily/redisse/
+
 ## Features
 
 * Pub/Sub split into **channels** for privacy & access rights handling.
@@ -23,9 +26,7 @@ application, and serving them to your clients.
 
 * **Event types** from SSE are left untouched for your application code, but
   keep in mind that a client will receive events of all types from their
-  channels.
-
-  To handle access rights, use channels instead.
+  channels. To handle access rights, use channels instead.
 
 ## Rationale
 

@@ -15,6 +15,9 @@ module Redisse
     runner.run
   end
 
+  # Internal: Goliath::API class that defines the server.
+  #
+  # See {Redisse#run}.
   class Server < Goliath::API
     require 'redisse/server/stats'
     require 'redisse/server/responses'

@@ -2,6 +2,7 @@ require 'redisse/server_sent_events'
 require 'json'
 
 module Redisse
+  # Internal: Publisher that pushes to Redis with history.
   class RedisPublisher
     include ServerSentEvents
 
@@ -22,6 +23,9 @@ module Redisse
     end
   end
 
+  # Internal: Publisher that stores events in memory for easy testing.
+  #
+  # See {Redisse#test_mode! Redisse#test_mode!}.
   class TestPublisher
     def initialize
       @published = []

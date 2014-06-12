@@ -83,10 +83,12 @@ module Redisse
   end
 
   def test_filter=(filter)
+    test_mode!
     publisher.filter = filter
   end
 
   def published
+    fail "Call #{self}.test_mode! first" unless publisher.respond_to?(:published)
     publisher.published
   end
 

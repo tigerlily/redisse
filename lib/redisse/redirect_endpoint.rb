@@ -20,8 +20,8 @@ module Redisse
 
     def redirect_url(env)
       channels = @redisse.channels(env)
-      fail 'Wrong channel "polling"' if channels.include? "polling"
-      fail 'Wrong channel "lastEventId"' if channels.include? "lastEventId"
+      fail 'Wrong channel "polling"' if channels.include? 'polling'
+      fail 'Reserved channel "lastEventId"' if channels.include? 'lastEventId'
       @base_url + '?' + URI.encode_www_form(redirect_options(env) + channels)
     end
 

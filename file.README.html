@@ -1,0 +1,210 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>
+  File: README
+  
+    &mdash; Documentation by YARD 0.8.7.4
+  
+</title>
+
+  <link rel="stylesheet" href="css/style.css" type="text/css" charset="utf-8" />
+
+  <link rel="stylesheet" href="css/common.css" type="text/css" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  hasFrames = window.top.frames.main ? true : false;
+  relpath = '';
+  framesUrl = "frames.html#!file.README.html";
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="header">
+      <div id="menu">
+  
+    <a href="_index.html">Index</a> &raquo; 
+    <span class="title">File: README</span>
+  
+
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="class_list.html">
+      Class List
+    </a>
+  
+    <a class="full_list_link" id="method_list_link"
+        href="method_list.html">
+      Method List
+    </a>
+  
+    <a class="full_list_link" id="file_list_link"
+        href="file_list.html">
+      File List
+    </a>
+  
+</div>
+      <div class="clear"></div>
+    </div>
+
+    <iframe id="search_frame"></iframe>
+
+    <div id="content"><div id='filecontents'>
+<h1 id="label-Redisse">Redisse</h1>
+
+<p>Redisse is a Redis-backed Ruby library for creating <a
+href="http://www.w3.org/TR/eventsource/">Server-Sent Events</a>, publishing
+them from your application, and serving them to your clients.</p>
+<ul><li>
+<p><strong>Homepage:</strong>  <a
+href="https://github.com/tigerlily/redisse">github.com/tigerlily/redisse</a></p>
+</li><li>
+<p><strong>Documentation:</strong>  <a
+href="https://tigerlily.github.io/redisse/">tigerlily.github.io/redisse</a></p>
+</li></ul>
+
+<h2 id="label-Features">Features</h2>
+<ul><li>
+<p>Pub/Sub split into <strong>channels</strong> for privacy &amp; access
+rights handling.</p>
+</li><li>
+<p><strong>SSE history</strong> via the <code>Last-Event-Id</code> header and
+the <code>lastEventId</code> query  parameter, with a limit of 100 events
+per channel.</p>
+</li><li>
+<p><strong>Long-polling</strong> via the <code>polling</code> query parameter.
+Allows to send several  events at once for long-polling clients by waiting
+one second before closing  the connection.</p>
+</li><li>
+<p><strong>Lightweight</strong>: only one Redis connection for history and one
+for all  subscriptions, no matter the number of connected clients.</p>
+</li><li>
+<p><strong><code>missedevents</code> event fired</strong> when the full
+requested history could not be  found, to allow the client to handle the
+case where events were missed.</p>
+</li><li>
+<p><strong>Event types</strong> from SSE are left untouched for your
+application code, but  keep in mind that a client will receive events of
+all types from their  channels. To handle access rights, use channels
+instead.</p>
+</li></ul>
+
+<h2 id="label-Rationale">Rationale</h2>
+
+<p>Redisse’s design comes from these requirements:</p>
+<ul><li>
+<p>The client wants to listen to several channels but use only one connection.
+(e.g. a single <code>EventSource</code> object is created in the browser
+but you want  events coming from different Redis channels.)</p>
+</li><li>
+<p>A server handles the concurrent connections so that the application servers
+don&#39;t need to (e.g. Unicorn workers).</p>
+</li><li>
+<p>The application is written in Ruby, so there needs to be a Ruby API to 
+publish events.</p>
+</li><li>
+<p>The application is written on top of Rack, so the code that lists the Redis
+Pub/Sub channels to subscribe to needs to be able to use Rack middlewares
+and  should receive a Rack environment. (e.g. you can use  <a
+href="https://github.com/hassox/warden">Warden</a> as a middleware and
+simply use  <code>env['warden'].user</code> to decide which channels the
+user can access.)</p>
+</li></ul>
+
+<h2 id="label-Installation">Installation</h2>
+
+<p>Add this line to your application&#39;s Gemfile:</p>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_gem'>gem</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>redisse</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>github:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>tigerlily/redisse</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>tag:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>v0.2.0</span><span class='tstring_end'>&#39;</span></span></code></pre>
+
+<h2 id="label-Usage">Usage</h2>
+
+<p>Define your SSE server (e.g. in <code>lib/sse_server.rb</code>):</p>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_require'>require</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>redisse</span><span class='tstring_end'>&#39;</span></span>
+
+<span class='kw'>module</span> <span class='const'>SSEServer</span>
+  <span class='id identifier rubyid_extend'>extend</span> <span class='const'>Redisse</span>
+
+  <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_redis_server'>redis_server</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>redis://localhost:6379/</span><span class='tstring_end'>&#39;</span></span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_default_port'>default_port</span> <span class='op'>=</span> <span class='int'>4242</span>
+
+  <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_channels'>channels</span><span class='lparen'>(</span><span class='id identifier rubyid_env'>env</span><span class='rparen'>)</span>
+    <span class='qwords_beg'>%w[ </span><span class='tstring_content'>global_events_channel</span><span class='words_sep'> ]</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span>
+</code></pre>
+
+<p>Create a binary to serve it (e.g. in <code>bin/sse_server</code>):</p>
+
+<pre class="code ruby"><code class="ruby"><span class='comment'>#!/usr/bin/env ruby
+</span>
+<span class='id identifier rubyid_require'>require</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>bundler/setup</span><span class='tstring_end'>&#39;</span></span>
+
+<span class='id identifier rubyid_require_relative'>require_relative</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>../lib/sse_server</span><span class='tstring_end'>&#39;</span></span>
+<span class='id identifier rubyid_require'>require</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>redisse/server</span><span class='tstring_end'>&#39;</span></span>
+<span class='const'>SSEServer</span><span class='period'>.</span><span class='id identifier rubyid_run'>run</span>
+</code></pre>
+
+<p>Run it:</p>
+
+<pre class="code ruby"><code class="ruby">$ chmod u+x bin/sse_server
+$ bin/sse_server --stdout --verbose</code></pre>
+
+<p>Get ready to receive events:</p>
+
+<pre class="code ruby"><code class="ruby">$ curl localhost:4242 -H &#39;Accept: text/event-stream&#39;</code></pre>
+
+<p>Send a Server-Sent Event:</p>
+
+<pre class="code ruby"><code class="ruby">$ irb -rbundler/setup -Ilib -rsse_server
+&gt; SSEServer.publish(&#39;global_events_channel&#39;, success: &quot;It&#39;s working!&quot;)</code></pre>
+
+<h3 id="label-Behind+nginx">Behind nginx</h3>
+
+<p>You’ll want to redirect the SSE requests to the SSE server instead of your
+Rack application. You should disable buffering (<code>proxy_buffering
+off</code>) and close the connection to the server when the client
+disconnects (<code>proxy_ignore_client_abort on</code>) to preserve
+resources (otherwise connections to Redis will be kept alive longer than
+necessary).</p>
+
+<p>You can check the <a
+href="https://github.com/tigerlily/redisse/blob/master/example/nginx.conf">nginx
+conf for the example</a>.</p>
+
+<h2 id="label-Contributing">Contributing</h2>
+<ol><li>
+<p>Fork it</p>
+</li><li>
+<p>Create your feature branch (<code>git checkout -b my-new-feature</code>)</p>
+</li><li>
+<p>Commit your changes (<code>git commit -am &#39;Add some
+feature&#39;</code>)</p>
+</li><li>
+<p>Push to the branch (<code>git push origin my-new-feature</code>)</p>
+</li><li>
+<p>Create new Pull Request</p>
+</li></ol>
+</div></div>
+
+    <div id="footer">
+  Generated on Mon Jun 16 16:15:04 2014 by
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.8.7.4 (ruby-2.1.2).
+</div>
+
+  </body>
+</html>

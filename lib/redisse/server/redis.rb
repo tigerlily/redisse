@@ -12,7 +12,7 @@ module Redisse
     end
 
     def ensure_pubsub
-      return if @pubsub
+      return if defined? @pubsub
       @pubsub = redis.pubsub
       @pubsub_errbacks = []
       @pubsub.on(:disconnected, &method(:on_redis_close))

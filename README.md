@@ -4,6 +4,11 @@ Redisse is a Redis-backed Ruby library for creating [Server-Sent
 Events](http://www.w3.org/TR/eventsource/), publishing them from your
 application, and serving them to your clients.
 
+* **Homepage:**
+  [github.com/tigerlily/redisse](https://github.com/tigerlily/redisse)
+* **Documentation:**
+  [tigerlily.github.io/redisse](https://tigerlily.github.io/redisse/)
+
 ## Features
 
 * Pub/Sub split into **channels** for privacy & access rights handling.
@@ -23,9 +28,7 @@ application, and serving them to your clients.
 
 * **Event types** from SSE are left untouched for your application code, but
   keep in mind that a client will receive events of all types from their
-  channels.
-
-  To handle access rights, use channels instead.
+  channels. To handle access rights, use channels instead.
 
 ## Rationale
 
@@ -114,6 +117,24 @@ Send a Server-Sent Event:
 
     $ irb -rbundler/setup -Ilib -rsse_server
     > SSEServer.publish('global_events_channel', success: "It's working!")
+
+### Testing
+
+In the traditional Rack app specs or tests, use `Redisse#test_mode!`:
+
+    describe "SSE" do
+      before do
+        SSEServer.test_mode!
+      end
+
+      it "should send a Server-Sent Event" do
+        post '/publish', channel: 'global', message: 'Hello'
+        expect(SSEServer.published.size).to be == 1
+      end
+    end
+
+See [the example app
+specs](https://github.com/tigerlily/redisse/blob/master/example/spec/app_spec.rb).
 
 ### Behind nginx
 

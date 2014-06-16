@@ -21,6 +21,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake"
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "rack-test"
+  spec.add_development_dependency "yard-tomdoc"
   spec.add_runtime_dependency "goliath"
   spec.add_runtime_dependency "em-hiredis"
   spec.add_runtime_dependency "redis"

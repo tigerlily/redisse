@@ -7,27 +7,21 @@ require 'em-hiredis'
 module Redisse
 
   # Public: Run the server.
+  #
+  # By default, the {#channels} method is called directly.
+  #
+  # If {#nginx_internal_url} is set, the channels will actually come from the
+  # internal redirect URL generated in the Rack app by {#redirect_endpoint}.
   def run
     server = Server.new(self, api)
     runner = Goliath::Runner.new(ARGV, server)
     runner.app = Goliath::Rack::Builder.build(self, server)
-    runner.load_plugins(self.plugins.unshift(Server::Stats))
+    runner.load_plugins([Server::Stats] + plugins)
     runner.run
   end
 
 private
 
-  # Private: An object that returns channels from a Rack env.
-  #
-  # The returned object is used by Redisse::Server to determine the list of
-  # channels to subscribe to.
-  #
-  # By default, it returns self, so your module's `channels` method is called
-  # directly.
-  #
-  # If nginx_internal_url is set, the channels will actually come from the
-  # internal redirect URL generated in the Rack app by
-  # Redisse#redirect_endpoint.
   def api
     if nginx_internal_url
       FromQueryString.new
@@ -36,6 +30,7 @@ private
     end
   end
 
+  # Internal: Extracts channels from the query string of the redirect URL.
   class FromQueryString
     def channels(env)
       query_string = env['QUERY_STRING'] || ''
@@ -47,6 +42,9 @@ private
     end
   end
 
+  # Internal: Goliath::API class that defines the server.
+  #
+  # See {Redisse#run}.
   class Server < Goliath::API
     require 'redisse/server/stats'
     require 'redisse/server/responses'

@@ -1,0 +1,39 @@
+require 'rack/test'
+
+$app, _opts = Rack::Builder.parse_file __dir__ + '/../config.ru'
+
+describe "Example App" do
+  include Rack::Test::Methods
+
+  def app
+    $app
+  end
+
+  describe "/publish" do
+    context "basic" do
+      before do
+        SSEServer.test_mode!
+      end
+
+      it "publishes the message to the channel" do
+        post "/publish", channel: 'global', message: 'Hello'
+        expect(SSEServer.published.size).to be == 1
+        event = SSEServer.published.first
+        expect(event.channel).to be == 'global'
+        expect(event.type).to be == :message
+        expect(event.data).to be == 'Hello'
+      end
+    end
+
+    context "filtered" do
+      before do
+        SSEServer.test_filter = :unused_type
+      end
+
+      it "publishes the message with the 'message' type" do
+        post "/publish", channel: 'global', message: 'Hello'
+        expect(SSEServer.published.size).to be == 0
+      end
+    end
+  end
+end

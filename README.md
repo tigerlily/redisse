@@ -97,6 +97,24 @@ Send a Server-Sent Event:
     $ irb -rbundler/setup -Ilib -rsse_server
     > SSEServer.publish('global_events_channel', success: "It's working!")
 
+### Testing
+
+In the traditional Rack app specs or tests, use `Redisse#test_mode!`:
+
+    describe "SSE" do
+      before do
+        SSEServer.test_mode!
+      end
+
+      it "should send a Server-Sent Event" do
+        post '/publish', channel: 'global', message: 'Hello'
+        expect(SSEServer.published.size).to be == 1
+      end
+    end
+
+See [the example app
+specs](https://github.com/tigerlily/redisse/blob/master/example/spec/app_spec.rb).
+
 ### Behind nginx
 
 You’ll want to redirect the SSE requests to the SSE server instead of your Rack

@@ -147,12 +147,11 @@ module Redisse
     plugins << [name, args]
   end
 
-  # Internal: List of Goliath plugins to run with the server.
+private
+
   def plugins
     @plugins ||= []
   end
-
-private
 
   def publisher
     @publisher ||= RedisPublisher.new(redis)

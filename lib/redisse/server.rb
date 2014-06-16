@@ -11,7 +11,7 @@ module Redisse
     server = Server.new(self)
     runner = Goliath::Runner.new(ARGV, server)
     runner.app = Goliath::Rack::Builder.build(self, server)
-    runner.load_plugins(self.plugins.unshift(Server::Stats))
+    runner.load_plugins([Server::Stats] + plugins)
     runner.run
   end
 

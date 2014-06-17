@@ -1,12 +1,16 @@
 # Redisse example: Rack app
 
+Run the dedicated Redis server:
+
+    $ bin/redis
+
 Run the Rack application server:
 
     $ rackup --port 8081
 
 Run the SSE server:
 
-    $ bin/server --stdout --verbose
+    $ bin/sse_server --stdout --verbose
 
 Finally run nginx to glue them together:
 
@@ -18,3 +22,7 @@ tabs and then send messages to see them replicated.
 A Rack session cookie is used to randomly select one of four channels
 (`channel_1` to `channel_4`) and simulate different access rights for
 different users of your application.
+
+You can also send events from the command line:
+
+    $ bin/publish global message 'Hello CLI'

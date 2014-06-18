@@ -15,6 +15,12 @@ begin
     sh "git commit -m 'Documentation for #{version}'"
     sh 'git checkout -'
   end
+rescue LoadError
+end
 
+begin
+  require 'rspec/core/rake_task'
+  RSpec::Core::RakeTask.new(:spec)
+  task :default => :spec
 rescue LoadError
 end

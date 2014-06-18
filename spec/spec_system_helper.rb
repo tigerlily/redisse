@@ -57,9 +57,9 @@ shared_context "system" do
           response_pushed = true
           @queue << response
           return unless Net::HTTPOK === response
-          reader = EventScanner.new { |event| @queue << event }
+          @reader = EventScanner.new { |event| @queue << event }
           response.read_body do |segment|
-            reader << segment
+            @reader << segment
             break if @stop
           end
         end
@@ -76,6 +76,10 @@ shared_context "system" do
         yield event
       end
       # @stop may not be true if the connection closed by itself
+    end
+
+    def full_stream
+      @reader.full_stream
     end
   end
 
@@ -105,6 +109,10 @@ shared_context "system" do
       @event.data.chomp!
       @block.call @event
       @event = Event.new ""
+    end
+
+    def full_stream
+      @body.string.dup
     end
   end
 

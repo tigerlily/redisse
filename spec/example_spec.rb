@@ -59,5 +59,14 @@ describe "Example" do
       expect(received.size).to be == 2
       expect(received.map(&:data)).to be == %w(bar baz)
     end
+
+    it "sends a heartbeat" do
+      events = EventReader.new "http://localhost:#{SSE_PORT}/"
+      expect(events).to be_connected
+      expect(events.full_stream).to be_empty
+      sleep(16)
+      expect(events.full_stream).to match(/^: hb$/)
+      events.stop
+    end
   end
 end

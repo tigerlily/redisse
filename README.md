@@ -69,7 +69,7 @@ for more info.
 
 Add this line to your application's Gemfile:
 
-    gem 'redisse', github: 'tigerlily/redisse', tag: 'v0.2.0'
+    gem 'redisse', github: 'tigerlily/redisse', tag: 'v0.3.0'
 
 ## Usage
 

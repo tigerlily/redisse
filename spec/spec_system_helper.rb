@@ -69,6 +69,7 @@ shared_context "system" do
     # #each is blocking while the connection persists
     # call #stop in the given block to make #each return
     def each
+      return enum_for(:each) unless block_given?
       return unless connected?
       # either stop asked or thread over
       while !@stop && (event = @queue.pop) != :over

@@ -39,5 +39,25 @@ describe "Example" do
         events.stop
       end
     end
+
+    it "closes the connection after a second with long polling" do
+      events = EventReader.new "http://localhost:#{SSE_PORT}/?polling"
+      expect(events).to be_connected
+      run_command "publish global foo bar"
+      time = Time.now.to_f
+      run_command "publish global foo baz"
+      received = nil
+      expect {
+        begin
+          Timeout.timeout(2) do
+            received = events.each.to_a
+          end
+        rescue Timeout::Error
+        end
+        time = Time.now.to_f
+      }.to change { time }.by(a_value_within(0.2).of(1.0))
+      expect(received.size).to be == 2
+      expect(received.map(&:data)).to be == %w(bar baz)
+    end
   end
 end

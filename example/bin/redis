@@ -1,0 +1,7 @@
+#!/bin/sh
+exec redis-server \
+	--daemonize no \
+	--port 6380 \
+	--bind 127.0.0.1 \
+	--logfile /dev/null \
+	--databases 1

@@ -22,6 +22,15 @@ module Redisse
   # Public: The default port of the server.
   attr_accessor :default_port
 
+  # Public: The internal URL hierarchy to redirect to with X-Accel-Redirect.
+  #
+  # When this property is set, Redisse will work totally differently. Your Ruby
+  # code will not be loaded by the events server itself, but only by the
+  # {#redirect_endpoint} Rack app that you will have to route to in your Rack
+  # app (e.g. using +map+ in +config.ru+) and this endpoint will redirect to
+  # this internal URL hierarchy.
+  attr_accessor :nginx_internal_url
+
   # Public: Send an event to subscribers, of the given type.
   #
   # All browsers subscribing to the events server will receive a Server-Sent
@@ -146,6 +155,23 @@ module Redisse
   def plugin(name, *args)
     plugins << [name, args]
   end
+
+  # Public: The Rack application that redirects to {#nginx_internal_url}.
+  #
+  # If you set {#nginx_internal_url}, you need to call this Rack application
+  # to redirect to the Redisse server.
+  #
+  # Also note that when using the redirect endpoint, two channel names are
+  # reserved, and cannot be used: +polling+ and +lastEventId+.
+  #
+  # Examples
+  #
+  #    map "/events" { run Events.redirect_endpoint }
+  def redirect_endpoint
+    @redirect_endpoint ||= RedirectEndpoint.new self
+  end
+
+  autoload :RedirectEndpoint, __dir__ + '/redisse/redirect_endpoint'
 
 private
 

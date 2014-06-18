@@ -7,12 +7,39 @@ require 'em-hiredis'
 module Redisse
 
   # Public: Run the server.
+  #
+  # By default, the {#channels} method is called directly.
+  #
+  # If {#nginx_internal_url} is set, the channels will actually come from the
+  # internal redirect URL generated in the Rack app by {#redirect_endpoint}.
   def run
-    server = Server.new(self)
+    server = Server.new(self, api)
     runner = Goliath::Runner.new(ARGV, server)
     runner.app = Goliath::Rack::Builder.build(self, server)
     runner.load_plugins([Server::Stats] + plugins)
     runner.run
+  end
+
+private
+
+  def api
+    if nginx_internal_url
+      FromQueryString.new
+    else
+      self
+    end
+  end
+
+  # Internal: Extracts channels from the query string of the redirect URL.
+  class FromQueryString
+    def channels(env)
+      query_string = env['QUERY_STRING'] || ''
+      channels = query_string.split('&').map { |channel|
+        URI.decode_www_form_component(channel)
+      }
+      channels.delete('polling')
+      channels.delete_if {|channel| channel.start_with?('lastEventId=') }
+    end
   end
 
   # Internal: Goliath::API class that defines the server.
@@ -36,14 +63,15 @@ module Redisse
     # Public: The period between heartbeats in seconds.
     HEARTBEAT_PERIOD = 15
 
-    def initialize(redisse)
+    def initialize(redisse, api)
       @redisse = redisse
+      @api = api
       super()
     end
 
     def response(env)
       return not_acceptable unless acceptable?(env)
-      channels = Array(redisse.channels(env))
+      channels = Array(@api.channels(env))
       return not_found if channels.empty?
       subscribe(env, channels) or return service_unavailable
       send_history_events(env, channels)

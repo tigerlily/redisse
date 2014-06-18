@@ -123,11 +123,29 @@ simply use  <code>env['warden'].user</code> to decide which channels the
 user can access.)</p>
 </li></ul>
 
+<h3 id="label-Redirect+endpoint">Redirect endpoint</h3>
+
+<p>The simplest way that last point can be fulfilled is by actually loading
+and running your code in the Redisse server. Unfortunately since it’s
+EventMachine-based, if your method takes a while to returns the channels,
+all the other connected clients will be blocked too. You&#39;ll also have
+some duplication between your <a
+href="https://github.com/tigerlily/redisse/blob/9052630e57081714365188a8f55f0549aee03d56/example/config.ru#L30">Rack
+config</a> and <a
+href="https://github.com/tigerlily/redisse/blob/9052630e57081714365188a8f55f0549aee03d56/example/lib/sse_server.rb#L15">Redisse
+server config</a>.</p>
+
+<p>Another way if you use nginx is instead to use a endpoint in your main
+application that will use the header X-Accel-Redirect to redirect to the
+Redisse server, which is now free from your blocking code. The channels
+will be sent instead via the redirect URL. See the <a
+href="#behind-nginx">section on nginx</a> for more info.</p>
+
 <h2 id="label-Installation">Installation</h2>
 
 <p>Add this line to your application&#39;s Gemfile:</p>
 
-<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_gem'>gem</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>redisse</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>github:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>tigerlily/redisse</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>tag:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>v0.2.0</span><span class='tstring_end'>&#39;</span></span></code></pre>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_gem'>gem</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>redisse</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>github:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>tigerlily/redisse</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='label'>tag:</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>v0.3.0</span><span class='tstring_end'>&#39;</span></span></code></pre>
 
 <h2 id="label-Usage">Usage</h2>
 
@@ -157,6 +175,12 @@ user can access.)</p>
 <span class='id identifier rubyid_require'>require</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>redisse/server</span><span class='tstring_end'>&#39;</span></span>
 <span class='const'>SSEServer</span><span class='period'>.</span><span class='id identifier rubyid_run'>run</span>
 </code></pre>
+
+<p>Use the endpoint in your main application (in config.ru or your router):</p>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_map'>map</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>/events</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>do</span>
+  <span class='id identifier rubyid_run'>run</span> <span class='const'>SSEServer</span><span class='period'>.</span><span class='id identifier rubyid_redirect_endpoint'>redirect_endpoint</span>
+<span class='kw'>end</span></code></pre>
 
 <p>Run it:</p>
 
@@ -194,16 +218,27 @@ example app specs</a>.</p>
 
 <h3 id="label-Behind+nginx">Behind nginx</h3>
 
-<p>You’ll want to redirect the SSE requests to the SSE server instead of your
-Rack application. You should disable buffering (<code>proxy_buffering
-off</code>) and close the connection to the server when the client
-disconnects (<code>proxy_ignore_client_abort on</code>) to preserve
-resources (otherwise connections to Redis will be kept alive longer than
-necessary).</p>
+<p>When running behind nginx as a reverse proxy, you should disable buffering
+(<code>proxy_buffering off</code>) and close the connection to the server
+when the client disconnects (<code>proxy_ignore_client_abort on</code>) to
+preserve resources (otherwise connections to Redis will be kept alive
+longer than necessary).</p>
+
+<p>You should take advantage of the <a href="#redirect-endpoint">redirect
+endpoint</a> instead of directing the SSE requests to the SSE server. Let
+your Rack application determine the channels, but have the request served
+by the SSE server with a redirect (X-Accel-Redirect) to an internal
+location.</p>
+
+<p>In this case, and if you have a large number of long-named channels, the
+internal redirect URL will be long and you might need to increase
+<code>proxy_buffer_size</code> from its default in your Rack application
+location configuration. For example, 8k will allow you about 200 channels
+with UUIDs as names, which is quite a lot.</p>
 
 <p>You can check the <a
 href="https://github.com/tigerlily/redisse/blob/master/example/nginx.conf">nginx
-conf for the example</a>.</p>
+conf of the example</a> for all the details.</p>
 
 <h2 id="label-Contributing">Contributing</h2>
 <ol><li>
@@ -221,7 +256,7 @@ feature&#39;</code>)</p>
 </div></div>
 
     <div id="footer">
-  Generated on Mon Jun 16 17:12:17 2014 by
+  Generated on Thu Jun 19 00:47:41 2014 by
   <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.8.7.4 (ruby-2.1.2).
 </div>

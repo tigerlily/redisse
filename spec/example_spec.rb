@@ -29,8 +29,18 @@ describe "Example" do
       end
     end
 
+    it "refuses a connection with 404 without channels" do
+      uri = URI("http://localhost:#{SSE_PORT}/")
+      Net::HTTP.start(uri.host, uri.port) do |http|
+        request = Net::HTTP::Get.new uri
+        request['Accept'] = 'text/event-stream'
+        response = http.request request
+        expect(response.code).to be == "404"
+      end
+    end
+
     it "receives a message" do
-      events = EventReader.new "http://localhost:#{SSE_PORT}/"
+      events = EventReader.new "http://localhost:#{SSE_PORT}/?global"
       expect(events).to be_connected
       run_command "publish global foo bar"
       events.each do |event|
@@ -41,7 +51,7 @@ describe "Example" do
     end
 
     it "closes the connection after a second with long polling" do
-      events = EventReader.new "http://localhost:#{SSE_PORT}/?polling"
+      events = EventReader.new "http://localhost:#{SSE_PORT}/?global&polling"
       expect(events).to be_connected
       run_command "publish global foo bar"
       time = Time.now.to_f
@@ -61,7 +71,7 @@ describe "Example" do
     end
 
     it "sends a heartbeat" do
-      events = EventReader.new "http://localhost:#{SSE_PORT}/"
+      events = EventReader.new "http://localhost:#{SSE_PORT}/?global"
       expect(events).to be_connected
       expect(events.full_stream).to be_empty
       sleep(16)

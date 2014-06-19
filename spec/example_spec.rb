@@ -79,4 +79,32 @@ describe "Example" do
       events.stop
     end
   end
+
+  describe "Redis failures" do
+    before :context do
+      @redis   = run_server "redis",      REDIS_PORT
+      @redisse = run_server "sse_server", SSE_PORT
+      @redis.wait_tcp
+      @redisse.wait_tcp
+    end
+
+    after :context do
+      @redis.stop
+      @redisse.stop
+    end
+
+    it "disconnects then refuses connections with 503" do
+      events = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+      expect(events).to be_connected
+      @redis.stop
+      Timeout.timeout(0.1) do
+        events.each.to_a
+      end
+      expect(events).not_to be_connected
+      events = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+      expect(events).not_to be_connected
+      expect(events.response.code).to be == "503"
+    end
+
+  end
 end

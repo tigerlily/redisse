@@ -20,10 +20,7 @@ shared_context "system" do
     def initialize(uri)
       @uri = URI(uri)
       @queue = Queue.new
-      @thread = Thread.new do
-        connect
-        @queue << :over
-      end
+      @thread = Thread.new { connect }
     end
 
     def stop
@@ -32,7 +29,7 @@ shared_context "system" do
     end
 
     def connected?
-      return Net::HTTPOK === response
+      return Net::HTTPOK === response && !@closed
     end
 
     def response
@@ -64,6 +61,8 @@ shared_context "system" do
           end
         end
       end
+      @closed = true
+      @queue << :over
     end
 
     # #each is blocking while the connection persists

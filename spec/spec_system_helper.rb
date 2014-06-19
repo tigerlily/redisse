@@ -144,8 +144,9 @@ shared_context "system" do
 
   class Server < Command
     def initialize(server, port)
-      super(server)
       @port = port
+      check_tcp
+      super(server)
       start
     end
 
@@ -156,6 +157,14 @@ shared_context "system" do
       retry
     ensure
       connection.close
+    end
+
+    def check_tcp
+      connection = TCPSocket.new 'localhost', @port
+      fail "port #@port already used"
+    rescue Errno::ECONNREFUSED
+    ensure
+      connection.close if connection
     end
   end
 end

@@ -46,7 +46,7 @@ describe "Example" do
       events.each do |event|
         expect(event.type).to be == 'foo'
         expect(event.data).to be == 'bar'
-        events.stop
+        events.close
       end
     end
 
@@ -76,7 +76,7 @@ describe "Example" do
       expect(events.full_stream).to be_empty
       sleep(16)
       expect(events.full_stream).to match(/^: hb$/)
-      events.stop
+      events.close
     end
   end
 

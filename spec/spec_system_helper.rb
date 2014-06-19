@@ -23,8 +23,8 @@ shared_context "system" do
       @thread = Thread.new { connect }
     end
 
-    def stop
-      @stop = true
+    def close
+      @close = true
       @thread.exit
     end
 
@@ -57,7 +57,7 @@ shared_context "system" do
           @reader = EventScanner.new { |event| @queue << event }
           response.read_body do |segment|
             @reader << segment
-            break if @stop
+            break if @close
           end
         end
       end
@@ -66,15 +66,15 @@ shared_context "system" do
     end
 
     # #each is blocking while the connection persists
-    # call #stop in the given block to make #each return
+    # call #close in the given block to make #each return
     def each
       return enum_for(:each) unless block_given?
       return unless connected?
-      # either stop asked or thread over
-      while !@stop && (event = @queue.pop) != :over
+      # either close asked or thread over
+      while !@close && (event = @queue.pop) != :over
         yield event
       end
-      # @stop may not be true if the connection closed by itself
+      # @close may not be true if the connection closed by itself
     end
 
     def full_stream

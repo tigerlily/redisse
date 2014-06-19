@@ -131,10 +131,15 @@ shared_context "system" do
 
     def wait
       Process.wait(@pid)
+    rescue Errno::ESRCH
     end
 
     def stop
+      return unless @pid
       Process.kill("TERM", @pid)
+      wait
+    ensure
+      @pid = nil
     end
 
     def bin

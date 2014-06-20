@@ -40,19 +40,19 @@ describe "Example" do
     end
 
     it "receives a message" do
-      events = EventReader.new "http://localhost:#{SSE_PORT}/?global"
-      expect(events).to be_connected
+      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+      expect(reader).to be_connected
       run_command "publish global foo bar"
-      events.each do |event|
+      reader.each do |event|
         expect(event.type).to be == 'foo'
         expect(event.data).to be == 'bar'
-        events.close
+        reader.close
       end
     end
 
     it "closes the connection after a second with long polling" do
-      events = EventReader.new "http://localhost:#{SSE_PORT}/?global&polling"
-      expect(events).to be_connected
+      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global&polling"
+      expect(reader).to be_connected
       run_command "publish global foo bar"
       time = Time.now.to_f
       run_command "publish global foo baz"
@@ -60,7 +60,7 @@ describe "Example" do
       expect {
         begin
           Timeout.timeout(2) do
-            received = events.each.to_a
+            received = reader.each.to_a
           end
         rescue Timeout::Error
         end
@@ -71,12 +71,12 @@ describe "Example" do
     end
 
     it "sends a heartbeat" do
-      events = EventReader.new "http://localhost:#{SSE_PORT}/?global"
-      expect(events).to be_connected
-      expect(events.full_stream).to be_empty
+      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+      expect(reader).to be_connected
+      expect(reader.full_stream).to be_empty
       sleep(16)
-      expect(events.full_stream).to match(/^: hb$/)
-      events.close
+      expect(reader.full_stream).to match(/^: hb$/)
+      reader.close
     end
   end
 
@@ -94,16 +94,16 @@ describe "Example" do
     end
 
     it "disconnects then refuses connections with 503" do
-      events = EventReader.new "http://localhost:#{SSE_PORT}/?global"
-      expect(events).to be_connected
+      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+      expect(reader).to be_connected
       @redis.stop
       Timeout.timeout(0.1) do
-        events.each.to_a
+        reader.each.to_a
       end
-      expect(events).not_to be_connected
-      events = EventReader.new "http://localhost:#{SSE_PORT}/?global"
-      expect(events).not_to be_connected
-      expect(events.response.code).to be == "503"
+      expect(reader).not_to be_connected
+      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+      expect(reader).not_to be_connected
+      expect(reader.response.code).to be == "503"
     end
 
   end

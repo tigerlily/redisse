@@ -13,16 +13,29 @@ shared_context "system" do
   Event = Struct.new :data, :type, :id
 
   class EventReader
-    def self.open(uri)
-      new(uri)
+    def self.open(*args, &block)
+      reader = new(*args)
+      if block_given?
+        yield_and_close(reader, &block)
+      else
+        reader
+      end
     end
 
     class << self
       private :new
+
+    private
+      def yield_and_close(reader)
+        yield reader
+      ensure
+        reader.close
+      end
     end
 
-    def initialize(uri)
+    def initialize(uri, last_event_id = nil)
       @uri = URI(uri)
+      @last_event_id = last_event_id
       @queue = Queue.new
       @thread = Thread.new { connect }
       @thread.abort_on_exception = true
@@ -61,10 +74,10 @@ shared_context "system" do
 
     def connect
       Net::HTTP.start(@uri.host, @uri.port) do |http|
-        request = Net::HTTP::Get.new @uri
-        request['Accept'] = 'text/event-stream'
         response_received = false
-        http.request request do |response|
+        headers = { 'Accept' => 'text/event-stream' }
+        headers['Last-Event-Id'] = @last_event_id.to_s if @last_event_id
+        http.request_get @uri, headers do |response|
           # Fix a bug? in Net::HTTP where if the connection times out,
           # the block runs again
           return if response_received
@@ -102,23 +115,24 @@ shared_context "system" do
 
     def <<(segment)
       @body << segment
-      return unless lines = @body.scan_until(/\n\n/)
-      lines.split("\n").each do |line|
-        field, value = line.split(/: ?/, 2)
-        next if field.empty?
-        case field
-        when "id"
-          @event.id = value
-        when "event"
-          @event.type = value
-        when "data"
-          @event.data << value if value
-          @event.data << "\n"
+      while lines = @body.scan_until(/\n\n/)
+        lines.split("\n").each do |line|
+          field, value = line.split(/: ?/, 2)
+          next if field.empty?
+          case field
+          when "id"
+            @event.id = value
+          when "event"
+            @event.type = value
+          when "data"
+            @event.data << value if value
+            @event.data << "\n"
+          end
         end
+        @event.data.chomp!
+        @block.call @event
+        @event = Event.new ""
       end
-      @event.data.chomp!
-      @block.call @event
-      @event = Event.new ""
     end
 
     def full_stream

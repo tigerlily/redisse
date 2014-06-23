@@ -54,7 +54,7 @@ describe "Example" do
       reader_2 = EventReader.open "http://localhost:#{SSE_PORT}/?global&channel_2"
       expect(reader_1).to be_connected
       expect(reader_2).to be_connected
-      `#{BIN}publish global foo foo_data`
+      `#{BIN}publish global    foo foo_data`
       `#{BIN}publish channel_1 bar bar_data`
       `#{BIN}publish channel_2 baz baz_data`
       events_1 = reader_1.each.take(2)
@@ -95,6 +95,17 @@ describe "Example" do
       sleep(16)
       expect(reader.full_stream).to match(/^: hb$/)
       reader.close
+    end
+
+    it "sends history" do
+      event_id = `#{BIN}publish global foo foo_data`[/(\d+)/, 1]
+      expect(event_id).not_to be_nil
+      `#{BIN}publish global    foo hist_1`
+      `#{BIN}publish channel_1 foo hist_2`
+      events = EventReader.open "http://localhost:#{SSE_PORT}/?global&channel_1", event_id do |reader|
+        reader.each.take(2)
+      end
+      expect(events.map(&:data)).to be == %w(hist_1 hist_2)
     end
   end
 

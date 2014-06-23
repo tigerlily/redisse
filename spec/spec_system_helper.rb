@@ -17,52 +17,33 @@ shared_context "system" do
   Event = Struct.new :data, :type, :id
 
   class EventReader
+    def self.open(uri)
+      new(uri)
+    end
+
+    class << self
+      private :new
+    end
+
     def initialize(uri)
       @uri = URI(uri)
       @queue = Queue.new
       @thread = Thread.new { connect }
+      @thread.abort_on_exception = true
+      event = @queue.pop
+      fail ':connected expected' unless event == :connected
     end
 
+    attr_reader :response
+
+    CloseConnection = Class.new StandardError
     def close
-      @close = true
-      @thread.exit
+      @closed_at = Time.now.to_f
+      @thread.raise CloseConnection
     end
 
     def connected?
       return Net::HTTPOK === response && !@closed
-    end
-
-    def response
-      ensure_response
-      @response
-    end
-
-    def ensure_response
-      return if defined? @response
-      @response = @queue.pop
-    end
-
-    def connect
-      Net::HTTP.start(@uri.host, @uri.port) do |http|
-        request = Net::HTTP::Get.new @uri
-        request['Accept'] = 'text/event-stream'
-        response_pushed = false
-        http.request request do |response|
-          # Fix a bug? in Net::HTTP where if the connection times out,
-          # the block runs again
-          return if response_pushed
-          response_pushed = true
-          @queue << response
-          return unless Net::HTTPOK === response
-          @reader = EventScanner.new { |event| @queue << event }
-          response.read_body do |segment|
-            @reader << segment
-            break if @close
-          end
-        end
-      end
-      @closed = true
-      @queue << :over
     end
 
     # #each is blocking while the connection persists
@@ -70,15 +51,49 @@ shared_context "system" do
     def each
       return enum_for(:each) unless block_given?
       return unless connected?
-      # either close asked or thread over
-      while !@close && (event = @queue.pop) != :over
+      while (event = @queue.pop) != :over
         yield event
       end
-      # @close may not be true if the connection closed by itself
     end
 
     def full_stream
-      @reader.full_stream
+      raise "No stream: response was #@response" unless @scanner
+      @scanner.full_stream
+    end
+
+  private
+
+    def connect
+      Net::HTTP.start(@uri.host, @uri.port) do |http|
+        request = Net::HTTP::Get.new @uri
+        request['Accept'] = 'text/event-stream'
+        response_received = false
+        http.request request do |response|
+          # Fix a bug? in Net::HTTP where if the connection times out,
+          # the block runs again
+          return if response_received
+          response_received = true
+          self.response = response
+          read_events if connected?
+        end
+      end
+    rescue CloseConnection
+    ensure
+      @closed = true
+      @queue << :over
+    end
+
+    def response=(response)
+      @response = response
+      @scanner = EventScanner.new { |event| @queue << event }
+      @queue << :connected
+    end
+
+    def read_events
+      @response.read_body do |segment|
+        @scanner << segment
+        break if @closed
+      end
     end
   end
 

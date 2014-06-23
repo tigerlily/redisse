@@ -30,17 +30,13 @@ describe "Example" do
     end
 
     it "refuses a connection with 404 without channels" do
-      uri = URI("http://localhost:#{SSE_PORT}/")
-      Net::HTTP.start(uri.host, uri.port) do |http|
-        request = Net::HTTP::Get.new uri
-        request['Accept'] = 'text/event-stream'
-        response = http.request request
-        expect(response.code).to be == "404"
-      end
+      reader = EventReader.open "http://localhost:#{SSE_PORT}/"
+      expect(reader).not_to be_connected
+      expect(reader.response.code).to be == "404"
     end
 
     it "receives a message" do
-      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global"
       expect(reader).to be_connected
       run_command "publish global foo bar"
       reader.each do |event|
@@ -48,10 +44,11 @@ describe "Example" do
         expect(event.data).to be == 'bar'
         reader.close
       end
+      expect(reader).not_to be_connected
     end
 
     it "closes the connection after a second with long polling" do
-      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global&polling"
+      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global&polling"
       expect(reader).to be_connected
       run_command "publish global foo bar"
       time = Time.now.to_f
@@ -66,12 +63,13 @@ describe "Example" do
         end
         time = Time.now.to_f
       }.to change { time }.by(a_value_within(0.2).of(1.0))
+      expect(reader).not_to be_connected
       expect(received.size).to be == 2
       expect(received.map(&:data)).to be == %w(bar baz)
     end
 
-    it "sends a heartbeat" do
-      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+    it "sends a heartbeat", :slow do
+      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global"
       expect(reader).to be_connected
       expect(reader.full_stream).to be_empty
       sleep(16)
@@ -94,14 +92,14 @@ describe "Example" do
     end
 
     it "disconnects then refuses connections with 503" do
-      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global"
       expect(reader).to be_connected
       @redis.stop
       Timeout.timeout(0.1) do
         reader.each.to_a
       end
       expect(reader).not_to be_connected
-      reader = EventReader.new "http://localhost:#{SSE_PORT}/?global"
+      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global"
       expect(reader).not_to be_connected
       expect(reader.response.code).to be == "503"
     end

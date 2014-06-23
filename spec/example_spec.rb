@@ -107,6 +107,54 @@ describe "Example" do
       end
       expect(events.map(&:data)).to be == %w(hist_1 hist_2)
     end
+
+    let(:history_size) { 100 }
+
+    describe "sends a missedevents events" do
+      example "if full history could not be fetched" do
+        event_id = `#{BIN}publish global foo foo_data`[/(\d+)/, 1]
+        `#{BIN}publish global foo missed`
+        `#{BIN}publish global foo first`
+        `#{BIN}publish global foo foo_data N=#{history_size - 2}`
+        `#{BIN}publish global foo 'last straw'`
+        events = EventReader.open "http://localhost:#{SSE_PORT}/?global", event_id do |reader|
+          enum = reader.each
+          event = enum.next
+          expect(event.type).to be == 'missedevents'
+          enum.take(history_size)
+        end
+        expect(events.first.data).to be == 'first'
+        expect(events[1...-1].map(&:data)).to all be == 'foo_data'
+        expect(events.last.data).to be == 'last straw'
+      end
+
+      example "if full history was fetched but the server can't know if there were missed events" do
+        event_id = `#{BIN}publish global foo foo_data`[/(\d+)/, 1]
+        `#{BIN}publish global foo first`
+        `#{BIN}publish global foo foo_data N=#{history_size - 2}`
+        `#{BIN}publish global foo 'last straw'`
+        events = EventReader.open "http://localhost:#{SSE_PORT}/?global", event_id do |reader|
+          enum = reader.each
+          event = enum.next
+          expect(event.type).to be == 'missedevents'
+          enum.take(history_size)
+        end
+        expect(events.first.data).to be == 'first'
+        expect(events[1...-1].map(&:data)).to all be == 'foo_data'
+        expect(events.last.data).to be == 'last straw'
+      end
+    end
+
+    it "stores 100 events per channel for history" do
+      event_id = `#{BIN}publish global foo seen`[/(\d+)/, 1]
+      `#{BIN}publish global    foo foo_data N=#{history_size - 1}`
+      `#{BIN}publish channel_1 bar bar_data N=#{history_size}`
+      events = EventReader.open "http://localhost:#{SSE_PORT}/?global&channel_1", event_id do |reader|
+        reader.each.take(2 * history_size - 1)
+      end
+      expect(events.first(history_size - 1).map(&:type)).to all be == 'foo'
+      expect(events.last(history_size).map(&:type))     .to all be == 'bar'
+    end
   end
 
   describe "Redis failures" do

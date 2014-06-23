@@ -6,10 +6,6 @@ require 'strscan'
 shared_context "system" do
   # Classes are not accessible from before, after hooks
   # methods are
-  def run_command(*args)
-    Command.new(*args).run
-  end
-
   def run_server(*args)
     Server.new(*args)
   end
@@ -130,18 +126,16 @@ shared_context "system" do
     end
   end
 
-  class Command
-    def initialize(command)
+  class Server
+    def initialize(command, port)
       @command = command
-    end
-
-    def run
-      start.wait
+      @port = port
+      check_tcp
+      start
     end
 
     def start
-      @pid = Process.spawn("#{bin}#@command", %i(in out err) => :close)
-      self
+      @pid = Process.spawn("#@command", %i(in out err) => :close)
     end
 
     def wait
@@ -155,19 +149,6 @@ shared_context "system" do
       wait
     ensure
       @pid = nil
-    end
-
-    def bin
-      __dir__ + '/../example/bin/'
-    end
-  end
-
-  class Server < Command
-    def initialize(server, port)
-      @port = port
-      check_tcp
-      super(server)
-      start
     end
 
     def wait_tcp

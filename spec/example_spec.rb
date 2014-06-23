@@ -5,12 +5,14 @@ REDIS_PORT = 6380
 SSE_PORT   = 8082
 
 describe "Example" do
+  BIN = __dir__ + '/../example/bin/'
+
   include_context "system"
 
   describe "basic tests" do
     before :context do
-      @redis   = run_server "redis",      REDIS_PORT
-      @redisse = run_server "sse_server", SSE_PORT
+      @redis   = run_server "#{BIN}redis",      REDIS_PORT
+      @redisse = run_server "#{BIN}sse_server", SSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
     end
@@ -38,7 +40,7 @@ describe "Example" do
     it "receives a message" do
       reader = EventReader.open "http://localhost:#{SSE_PORT}/?global"
       expect(reader).to be_connected
-      run_command "publish global foo bar"
+      `#{BIN}publish global foo bar`
       reader.each do |event|
         expect(event.type).to be == 'foo'
         expect(event.data).to be == 'bar'
@@ -47,12 +49,30 @@ describe "Example" do
       expect(reader).not_to be_connected
     end
 
+    it "receives different messages on different channels" do
+      reader_1 = EventReader.open "http://localhost:#{SSE_PORT}/?global&channel_1"
+      reader_2 = EventReader.open "http://localhost:#{SSE_PORT}/?global&channel_2"
+      expect(reader_1).to be_connected
+      expect(reader_2).to be_connected
+      `#{BIN}publish global foo foo_data`
+      `#{BIN}publish channel_1 bar bar_data`
+      `#{BIN}publish channel_2 baz baz_data`
+      events_1 = reader_1.each.take(2)
+      events_2 = reader_2.each.take(2)
+      expect(events_1.map(&:type)).to be == %w(foo bar)
+      expect(events_1.map(&:data)).to be == %w(foo_data bar_data)
+      expect(events_2.map(&:type)).to be == %w(foo baz)
+      expect(events_2.map(&:data)).to be == %w(foo_data baz_data)
+      reader_1.close
+      reader_2.close
+    end
+
     it "closes the connection after a second with long polling" do
       reader = EventReader.open "http://localhost:#{SSE_PORT}/?global&polling"
       expect(reader).to be_connected
-      run_command "publish global foo bar"
+      `#{BIN}publish global foo bar`
       time = Time.now.to_f
-      run_command "publish global foo baz"
+      `#{BIN}publish global foo baz`
       received = nil
       expect {
         begin
@@ -80,8 +100,8 @@ describe "Example" do
 
   describe "Redis failures" do
     before :context do
-      @redis   = run_server "redis",      REDIS_PORT
-      @redisse = run_server "sse_server", SSE_PORT
+      @redis   = run_server "#{BIN}redis",      REDIS_PORT
+      @redisse = run_server "#{BIN}sse_server", SSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
     end

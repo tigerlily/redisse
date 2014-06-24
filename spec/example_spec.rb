@@ -1,5 +1,4 @@
 require 'spec_system_helper'
-require_relative '../example/lib/sse_server'
 
 REDIS_PORT = 6380
 SSE_PORT   = 8082
@@ -23,7 +22,7 @@ describe "Example" do
     end
 
     it "refuses a connection with 406 without proper Accept header" do
-      uri = URI("http://localhost:#{SSE_PORT}/")
+      uri = URI(redisse_url)
       Net::HTTP.start(uri.host, uri.port) do |http|
         request = Net::HTTP::Get.new uri
         response = http.request request
@@ -32,13 +31,13 @@ describe "Example" do
     end
 
     it "refuses a connection with 404 without channels" do
-      reader = EventReader.open "http://localhost:#{SSE_PORT}/"
+      reader = EventReader.open redisse_url
       expect(reader).not_to be_connected
       expect(reader.response.code).to be == "404"
     end
 
     it "receives a message" do
-      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global"
+      reader = EventReader.open redisse_url :global
       expect(reader).to be_connected
       `#{BIN}publish global foo bar`
       reader.each do |event|
@@ -50,8 +49,8 @@ describe "Example" do
     end
 
     it "receives different messages on different channels" do
-      reader_1 = EventReader.open "http://localhost:#{SSE_PORT}/?global&channel_1"
-      reader_2 = EventReader.open "http://localhost:#{SSE_PORT}/?global&channel_2"
+      reader_1 = EventReader.open redisse_url :global, :channel_1
+      reader_2 = EventReader.open redisse_url :global, :channel_2
       expect(reader_1).to be_connected
       expect(reader_2).to be_connected
       `#{BIN}publish global    foo foo_data`
@@ -68,7 +67,7 @@ describe "Example" do
     end
 
     it "closes the connection after a second with long polling" do
-      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global&polling"
+      reader = EventReader.open redisse_url :global, :polling
       expect(reader).to be_connected
       `#{BIN}publish global foo bar`
       time = Time.now.to_f
@@ -89,7 +88,7 @@ describe "Example" do
     end
 
     it "sends a heartbeat", :slow do
-      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global"
+      reader = EventReader.open redisse_url :global
       expect(reader).to be_connected
       expect(reader.full_stream).to be_empty
       sleep(16)
@@ -102,7 +101,7 @@ describe "Example" do
       expect(event_id).not_to be_nil
       `#{BIN}publish global    foo hist_1`
       `#{BIN}publish channel_1 foo hist_2`
-      events = EventReader.open "http://localhost:#{SSE_PORT}/?global&channel_1", event_id do |reader|
+      events = EventReader.open redisse_url(:global, :channel_1), event_id do |reader|
         reader.each.take(2)
       end
       expect(events.map(&:data)).to be == %w(hist_1 hist_2)
@@ -117,7 +116,7 @@ describe "Example" do
         `#{BIN}publish global foo first`
         `#{BIN}publish global foo foo_data N=#{history_size - 2}`
         `#{BIN}publish global foo 'last straw'`
-        events = EventReader.open "http://localhost:#{SSE_PORT}/?global", event_id do |reader|
+        events = EventReader.open redisse_url(:global), event_id do |reader|
           enum = reader.each
           event = enum.next
           expect(event.type).to be == 'missedevents'
@@ -133,7 +132,7 @@ describe "Example" do
         `#{BIN}publish global foo first`
         `#{BIN}publish global foo foo_data N=#{history_size - 2}`
         `#{BIN}publish global foo 'last straw'`
-        events = EventReader.open "http://localhost:#{SSE_PORT}/?global", event_id do |reader|
+        events = EventReader.open redisse_url(:global), event_id do |reader|
           enum = reader.each
           event = enum.next
           expect(event.type).to be == 'missedevents'
@@ -149,7 +148,7 @@ describe "Example" do
       event_id = `#{BIN}publish global foo seen`[/(\d+)/, 1]
       `#{BIN}publish global    foo foo_data N=#{history_size - 1}`
       `#{BIN}publish channel_1 bar bar_data N=#{history_size}`
-      events = EventReader.open "http://localhost:#{SSE_PORT}/?global&channel_1", event_id do |reader|
+      events = EventReader.open redisse_url(:global, :channel_1), event_id do |reader|
         reader.each.take(2 * history_size - 1)
       end
       expect(events.first(history_size - 1).map(&:type)).to all be == 'foo'
@@ -171,17 +170,21 @@ describe "Example" do
     end
 
     it "disconnects then refuses connections with 503" do
-      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global"
+      reader = EventReader.open redisse_url :global
       expect(reader).to be_connected
       @redis.stop
       Timeout.timeout(0.1) do
         reader.each.to_a
       end
       expect(reader).not_to be_connected
-      reader = EventReader.open "http://localhost:#{SSE_PORT}/?global"
+      reader = EventReader.open redisse_url :global
       expect(reader).not_to be_connected
       expect(reader.response.code).to be == "503"
     end
 
+  end
+
+  def redisse_url(*channels)
+    "http://localhost:#{SSE_PORT}/?#{URI.encode_www_form(channels)}"
   end
 end

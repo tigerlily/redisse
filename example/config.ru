@@ -1,4 +1,6 @@
 require 'bundler/setup'
+require 'dotenv'
+Dotenv.load
 
 $: << __dir__ + '/lib'
 require 'sse_server'

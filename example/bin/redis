@@ -1,7 +1,12 @@
-#!/bin/sh
-exec redis-server \
-	--daemonize no \
-	--port 6380 \
-	--bind 127.0.0.1 \
-	--logfile /dev/null \
-	--databases 1
+#!/usr/bin/env ruby
+require 'bundler/setup'
+require 'dotenv'
+Dotenv.load
+
+puts "Starting Redis server on 127.0.0.1:#{ENV['REDIS_PORT']}"
+Process.exec 'redis-server ' \
+  '--daemonize no '          \
+  '--port $REDIS_PORT '      \
+  '--bind 127.0.0.1 '        \
+  '--logfile /dev/null '     \
+  '--databases 1'

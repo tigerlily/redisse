@@ -1,12 +1,21 @@
 # Redisse example: Rack app
 
-Run the dedicated Redis server:
+Get the dependencies:
+
+    $ bundle
+
+Note that the example uses [dotenv](https://github.com/bkeepers/dotenv):
+
+    $ cat .env
+
+Change .env to point to a running Redis server, or simply run the dedicated
+Redis server:
 
     $ bin/redis
 
 Run the Rack application server:
 
-    $ rackup --port 8081
+    $ bundle exec dotenv rackup --port 8081
 
 Run the SSE server:
 

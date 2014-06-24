@@ -1,7 +1,10 @@
 require 'spec_system_helper'
+require 'dotenv'
+Dotenv.load 'example/.env'
 
-REDIS_PORT = 6380
-SSE_PORT   = 8082
+REDIS_PORT    = ENV['REDIS_PORT']
+REDISSE_PORT  = ENV['REDISSE_PORT']
+REDISSE_REDIS = ENV['REDISSE_REDIS']
 
 describe "Example" do
   BIN = __dir__ + '/../example/bin/'
@@ -11,7 +14,7 @@ describe "Example" do
   describe "basic tests" do
     before :context do
       @redis   = run_server "#{BIN}redis",      REDIS_PORT
-      @redisse = run_server "#{BIN}sse_server", SSE_PORT
+      @redisse = run_server "#{BIN}sse_server", REDISSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
     end
@@ -159,7 +162,7 @@ describe "Example" do
   describe "Redis failures" do
     before :context do
       @redis   = run_server "#{BIN}redis",      REDIS_PORT
-      @redisse = run_server "#{BIN}sse_server", SSE_PORT
+      @redisse = run_server "#{BIN}sse_server", REDISSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
     end
@@ -191,6 +194,6 @@ describe "Example" do
   end
 
   def redisse_url(*channels)
-    "http://localhost:#{SSE_PORT}/?#{URI.encode_www_form(channels)}"
+    "http://localhost:#{REDISSE_PORT}/?#{URI.encode_www_form(channels)}"
   end
 end

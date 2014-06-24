@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
-
 require 'bundler/setup'
+require 'dotenv'
+Dotenv.load
 
 require_relative '../lib/sse_server'
 if count = ARGV.detect {|arg| arg.start_with?('N=') }

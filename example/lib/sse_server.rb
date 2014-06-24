@@ -4,8 +4,8 @@ require 'rack'
 module SSEServer
   extend Redisse
 
-  self.redis_server = 'redis://localhost:6380/'
-  self.default_port = 8082
+  self.redis_server = ENV['REDISSE_REDIS']
+  self.default_port = ENV['REDISSE_PORT']
 
   self.nginx_internal_url = '/redisse'
 

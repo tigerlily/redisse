@@ -39,7 +39,7 @@ describe "Example" do
     it "receives a message" do
       reader = EventReader.open redisse_url :global
       expect(reader).to be_connected
-      `#{BIN}publish global foo bar`
+      publish :global, :foo, :bar
       reader.each do |event|
         expect(event.type).to be == 'foo'
         expect(event.data).to be == 'bar'
@@ -53,9 +53,9 @@ describe "Example" do
       reader_2 = EventReader.open redisse_url :global, :channel_2
       expect(reader_1).to be_connected
       expect(reader_2).to be_connected
-      `#{BIN}publish global    foo foo_data`
-      `#{BIN}publish channel_1 bar bar_data`
-      `#{BIN}publish channel_2 baz baz_data`
+      publish :global,    :foo, :foo_data
+      publish :channel_1, :bar, :bar_data
+      publish :channel_2, :baz, :baz_data
       events_1 = reader_1.each.take(2)
       events_2 = reader_2.each.take(2)
       expect(events_1.map(&:type)).to be == %w(foo bar)
@@ -69,9 +69,9 @@ describe "Example" do
     it "closes the connection after a second with long polling" do
       reader = EventReader.open redisse_url :global, :polling
       expect(reader).to be_connected
-      `#{BIN}publish global foo bar`
+      publish :global, :foo, :bar
       time = Time.now.to_f
-      `#{BIN}publish global foo baz`
+      publish :global, :foo, :baz
       received = nil
       expect {
         begin
@@ -97,10 +97,10 @@ describe "Example" do
     end
 
     it "sends history" do
-      event_id = `#{BIN}publish global foo foo_data`[/(\d+)/, 1]
+      event_id = publish :global, :foo, :foo_data
       expect(event_id).not_to be_nil
-      `#{BIN}publish global    foo hist_1`
-      `#{BIN}publish channel_1 foo hist_2`
+      publish :global,    :foo, :hist_1
+      publish :channel_1, :foo, :hist_2
       events = EventReader.open redisse_url(:global, :channel_1), event_id do |reader|
         reader.each.take(2)
       end
@@ -111,11 +111,11 @@ describe "Example" do
 
     describe "sends a missedevents events" do
       example "if full history could not be fetched" do
-        event_id = `#{BIN}publish global foo foo_data`[/(\d+)/, 1]
-        `#{BIN}publish global foo missed`
-        `#{BIN}publish global foo first`
-        `#{BIN}publish global foo foo_data N=#{history_size - 2}`
-        `#{BIN}publish global foo 'last straw'`
+        event_id = publish :global, :foo, :foo_data
+        publish :global, :foo, :missed
+        publish :global, :foo, :first
+        publish :global, :foo, :foo_data, count: history_size - 2
+        publish :global, :foo, :'last straw'
         events = EventReader.open redisse_url(:global), event_id do |reader|
           enum = reader.each
           event = enum.next
@@ -128,10 +128,10 @@ describe "Example" do
       end
 
       example "if full history was fetched but the server can't know if there were missed events" do
-        event_id = `#{BIN}publish global foo foo_data`[/(\d+)/, 1]
-        `#{BIN}publish global foo first`
-        `#{BIN}publish global foo foo_data N=#{history_size - 2}`
-        `#{BIN}publish global foo 'last straw'`
+        event_id = publish :global, :foo, :foo_data
+        publish :global, :foo, :first
+        publish :global, :foo, :foo_data, count: history_size - 2
+        publish :global, :foo, :'last straw'
         events = EventReader.open redisse_url(:global), event_id do |reader|
           enum = reader.each
           event = enum.next
@@ -145,9 +145,9 @@ describe "Example" do
     end
 
     it "stores 100 events per channel for history" do
-      event_id = `#{BIN}publish global foo seen`[/(\d+)/, 1]
-      `#{BIN}publish global    foo foo_data N=#{history_size - 1}`
-      `#{BIN}publish channel_1 bar bar_data N=#{history_size}`
+      event_id = publish :global, :foo, :seen
+      publish :global,    :foo, :foo_data, count: history_size - 1
+      publish :channel_1, :bar, :bar_data, count: history_size
       events = EventReader.open redisse_url(:global, :channel_1), event_id do |reader|
         reader.each.take(2 * history_size - 1)
       end
@@ -182,6 +182,12 @@ describe "Example" do
       expect(reader.response.code).to be == "503"
     end
 
+  end
+
+  def publish(channel, type, data, count: nil)
+    count = "N=#{count}" if count
+    output = `#{BIN}/publish '#{channel}' '#{type}' '#{data}' #{count}`
+    output[/(\d+)/, 1]
   end
 
   def redisse_url(*channels)

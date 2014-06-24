@@ -166,12 +166,20 @@ shared_context "system" do
     end
 
     def wait_tcp
+      Timeout.timeout(5) do
+        _wait_tcp
+      end
+    rescue Timeout::Error
+      fail "Could not connect to server at localhost:#@port"
+    end
+
+    def _wait_tcp
       connection = TCPSocket.new 'localhost', @port
       self
     rescue
       retry
     ensure
-      connection.close
+      connection.close if connection
     end
 
     def check_tcp

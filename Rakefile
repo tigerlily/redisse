@@ -20,7 +20,9 @@ end
 
 begin
   require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:spec)
+  RSpec::Core::RakeTask.new(:spec) do |task|
+    task.pattern = "{example/,}" + task.pattern
+  end
   task :default => :spec
 rescue LoadError
 end

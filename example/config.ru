@@ -2,18 +2,22 @@ require 'bundler/setup'
 require 'dotenv'
 Dotenv.load
 
-$: << __dir__ + '/lib'
-require 'sse_server'
+require 'redisse'
+
+Redisse.channels do |env|
+  env['rack.session']['channels'] ||=
+    %w[ global ] << "channel_#{rand(4)+1}"
+end
 
 class Application
   def call(env)
     request = Rack::Request.new env
 
     if publish?(request)
-      SSEServer.publish(request['channel'], request['message'])
+      Redisse.publish(request['channel'], request['message'])
       return Rack::Response.new "No Content", 204
     elsif subscriptions?(request)
-      return Rack::Response.new SSEServer.channels(env).join(", "), 200
+      return Rack::Response.new Redisse.channels(env).join(", "), 200
     end
 
     Rack::Response.new "Not Found", 404
@@ -31,6 +35,6 @@ end
 use Rack::Session::Cookie, secret: 'not a secret'
 use Rack::Static, urls: {"/" => 'index.html'}, root: 'public', index: 'index.html'
 map "/events" do
-  run SSEServer.redirect_endpoint
+  run Redisse.redirect_endpoint
 end
 run Application.new

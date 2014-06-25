@@ -13,7 +13,8 @@ module Redisse
   # If {#nginx_internal_url} is set, the channels will actually come from the
   # internal redirect URL generated in the Rack app by {#redirect_endpoint}.
   def run
-    server = Server.new(self, api)
+    run_as_standalone if nginx_internal_url
+    server = Server.new(self)
     runner = Goliath::Runner.new(ARGV, server)
     runner.app = Goliath::Rack::Builder.build(self, server)
     runner.load_plugins([Server::Stats] + plugins)
@@ -22,17 +23,9 @@ module Redisse
 
 private
 
-  def api
-    if nginx_internal_url
-      FromQueryString.new
-    else
-      self
-    end
-  end
-
-  # Internal: Extracts channels from the query string of the redirect URL.
-  class FromQueryString
-    def channels(env)
+  # Internal: Redefine {#channels} to find channels in the redirect URL.
+  def run_as_standalone
+    channels do |env|
       query_string = env['QUERY_STRING'] || ''
       channels = query_string.split('&').map { |channel|
         URI.decode_www_form_component(channel)
@@ -63,15 +56,14 @@ private
     # Public: The period between heartbeats in seconds.
     HEARTBEAT_PERIOD = 15
 
-    def initialize(redisse, api)
+    def initialize(redisse)
       @redisse = redisse
-      @api = api
       super()
     end
 
     def response(env)
       return not_acceptable unless acceptable?(env)
-      channels = Array(@api.channels(env))
+      channels = Array(redisse.channels(env))
       return not_found if channels.empty?
       subscribe(env, channels) or return service_unavailable
       send_history_events(env, channels)

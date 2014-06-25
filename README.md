@@ -73,19 +73,12 @@ Add this line to your application's Gemfile:
 
 ## Usage
 
-Define your SSE server (e.g. in `lib/sse_server.rb`):
+Configure Redisse (e.g. in `config/initializers/redisse.rb`):
 
     require 'redisse'
 
-    module SSEServer
-      extend Redisse
-
-      self.redis_server = 'redis://localhost:6379/'
-      self.default_port = 4242
-
-      def self.channels(env)
-        %w[ global_events_channel ]
-      end
+    Redisse.channels do |env|
+      %w[ global ]
     end
 
 Create a binary to serve it (e.g. in `bin/sse_server`):
@@ -101,35 +94,34 @@ Create a binary to serve it (e.g. in `bin/sse_server`):
 Use the endpoint in your main application (in config.ru or your router):
 
     map "/events" do
-      run SSEServer.redirect_endpoint
+      run Redisse.redirect_endpoint
     end
 
-Run it:
+Run the server:
 
     $ chmod u+x bin/sse_server
     $ bin/sse_server --stdout --verbose
 
 Get ready to receive events:
 
-    $ curl localhost:4242 -H 'Accept: text/event-stream'
+    $ curl localhost:8080 -H 'Accept: text/event-stream'
 
 Send a Server-Sent Event:
 
-    $ irb -rbundler/setup -Ilib -rsse_server
-    > SSEServer.publish('global_events_channel', success: "It's working!")
+    Redisse.publish('global', success: "It's working!")
 
 ### Testing
 
-In the traditional Rack app specs or tests, use `Redisse#test_mode!`:
+In the traditional Rack app specs or tests, use `Redisse.test_mode!`:
 
     describe "SSE" do
       before do
-        SSEServer.test_mode!
+        Redisse.test_mode!
       end
 
       it "should send a Server-Sent Event" do
         post '/publish', channel: 'global', message: 'Hello'
-        expect(SSEServer.published.size).to be == 1
+        expect(Redisse.published.size).to be == 1
       end
     end
 

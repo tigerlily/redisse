@@ -12,13 +12,13 @@ describe "Example App" do
   describe "/publish" do
     context "basic" do
       before do
-        SSEServer.test_mode!
+        Redisse.test_mode!
       end
 
       it "publishes the message to the channel" do
         post "/publish", channel: 'global', message: 'Hello'
-        expect(SSEServer.published.size).to be == 1
-        event = SSEServer.published.first
+        expect(Redisse.published.size).to be == 1
+        event = Redisse.published.first
         expect(event.channel).to be == 'global'
         expect(event.type).to be == :message
         expect(event.data).to be == 'Hello'
@@ -27,12 +27,12 @@ describe "Example App" do
 
     context "filtered" do
       before do
-        SSEServer.test_filter = :unused_type
+        Redisse.test_filter = :unused_type
       end
 
       it "publishes the message with the 'message' type" do
         post "/publish", channel: 'global', message: 'Hello'
-        expect(SSEServer.published.size).to be == 0
+        expect(Redisse.published.size).to be == 0
       end
     end
   end

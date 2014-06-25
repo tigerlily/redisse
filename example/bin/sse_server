@@ -1,7 +1,4 @@
 #!/usr/bin/env ruby
-
 require 'bundler/setup'
-
-require_relative '../lib/sse_server'
 require 'redisse/server'
-SSEServer.run
+Redisse.run

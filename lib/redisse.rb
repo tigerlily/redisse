@@ -11,15 +11,14 @@ module Redisse
   # database will still be used to store an history of the events sent to
   # support Last-Event-Id.
   #
-  # Examples
-  #
-  #   class Events < Redisse
-  #     # ...
-  #   end
-  #   Events.redis_server = "redis://localhost:6379/42"
+  # Defaults to the REDISSE_REDIS environment variable and if it is not set, to
+  # redis://localhost:6379/.
   attr_accessor :redis_server
 
-  # Public: The default port of the server.
+  # Public: The port on which the server listens.
+  #
+  # Defaults to the REDISSE_PORT environment variable and if it is not set, to
+  # 8080.
   attr_accessor :default_port
 
   # Public: The internal URL hierarchy to redirect to with X-Accel-Redirect.
@@ -29,6 +28,8 @@ module Redisse
   # {#redirect_endpoint} Rack app that you will have to route to in your Rack
   # app (e.g. using +map+ in +config.ru+) and this endpoint will redirect to
   # this internal URL hierarchy.
+  #
+  # Defaults to /redisse.
   attr_accessor :nginx_internal_url
 
   # Public: Send an event to subscribers, of the given type.
@@ -62,24 +63,16 @@ module Redisse
 
   # Public: The list of channels to subscribe to.
   #
-  # The Redis keys with the same name as the channels will be used to store an
-  # history of the last events sent, in order to support Last-Event-Id.
-  #
-  # You need to override this method in your subclass, and depending on the
-  # Rack environment, return a list of channels the current user has access to.
+  # Once {Redisse.channels} has been called, the given block is this method.
+  # The block must satisfy this interface:
   #
   # env - The Rack environment for this request.
   #
-  # Examples
-  #
-  #   def channels(env)
-  #     %w( comment post )
-  #   end
-  #   # will result in subscriptions to 'comment' and 'post' channels.
-  #
   # Returns an Array of String naming the channels to subscribe to.
+  #
+  # Raises NotImplementedError unless {Redisse.channels} has been called.
   def channels(env)
-    raise NotImplementedError, "you must implement #{self}.channels"
+    raise NotImplementedError, "you must call Redisse.channels first"
   end
 
   # Public: Use test mode.
@@ -95,7 +88,7 @@ module Redisse
   # Examples
   #
   #   # RSpec
-  #   before { Events.test_mode! }
+  #   before { Redisse.test_mode! }
   def test_mode!
     @publisher = TestPublisher.new
   end
@@ -110,11 +103,11 @@ module Redisse
   #
   # Examples
   #
-  #   Events.test_filter = -> type { %i(foo baz).include? type }
-  #   Events.publish :global, foo: 'stored'
-  #   Events.publish :global, bar: 'skipped'
-  #   Events.publish :global, baz: 'stored'
-  #   Events.published.size # => 2
+  #   Redisse.test_filter = -> type { %i(foo baz).include? type }
+  #   Redisse.publish :global, foo: 'stored'
+  #   Redisse.publish :global, bar: 'skipped'
+  #   Redisse.publish :global, baz: 'stored'
+  #   Redisse.published.size # => 2
   def test_filter=(filter)
     test_mode!
     publisher.filter = filter
@@ -141,10 +134,7 @@ module Redisse
   #
   # Examples
   #
-  #    module Events
-  #      extend Redisse
-  #      use MyMiddleware, foo: true
-  #    end
+  #    Redisse.use MyMiddleware, foo: true
   def use(middleware, *args, &block)
     middlewares << [middleware, args, block]
   end
@@ -166,7 +156,7 @@ module Redisse
   #
   # Examples
   #
-  #    map "/events" { run Events.redirect_endpoint }
+  #    map "/events" { run Redisse.redirect_endpoint }
   def redirect_endpoint
     @redirect_endpoint ||= RedirectEndpoint.new self
   end
@@ -187,3 +177,5 @@ private
     @redis ||= Redis.new(url: redis_server)
   end
 end
+
+require 'redisse/configuration'

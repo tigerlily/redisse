@@ -1,4 +1,4 @@
 #!/usr/bin/env ruby
-require 'bundler/setup'
+
 require 'redisse/server'
 Redisse.run

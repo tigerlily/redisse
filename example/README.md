@@ -19,7 +19,7 @@ Run the Rack application server:
 
 Run the SSE server:
 
-    $ bin/sse_server --stdout --verbose
+    $ bundle exec dotenv redisse --stdout --verbose
 
 Finally run nginx to glue them together:
 

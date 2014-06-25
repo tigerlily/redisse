@@ -81,16 +81,6 @@ Configure Redisse (e.g. in `config/initializers/redisse.rb`):
       %w[ global ]
     end
 
-Create a binary to serve it (e.g. in `bin/sse_server`):
-
-    #!/usr/bin/env ruby
-
-    require 'bundler/setup'
-
-    require_relative '../lib/sse_server'
-    require 'redisse/server'
-    SSEServer.run
-
 Use the endpoint in your main application (in config.ru or your router):
 
     map "/events" do
@@ -99,8 +89,7 @@ Use the endpoint in your main application (in config.ru or your router):
 
 Run the server:
 
-    $ chmod u+x bin/sse_server
-    $ bin/sse_server --stdout --verbose
+    $ redisse --stdout --verbose
 
 Get ready to receive events:
 

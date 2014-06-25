@@ -8,6 +8,8 @@ module Redisse
 
   # Public: Run the server.
   #
+  # If you use the provided binary you don't need to call this method.
+  #
   # By default, the {#channels} method is called directly.
   #
   # If {#nginx_internal_url} is set, the channels will actually come from the
@@ -191,6 +193,9 @@ private
   public
 
     def options_parser(opts, options)
+      opts.on '--redis REDIS_URL', 'URL of the Redis connection' do |url|
+        redisse.redis_server = url
+      end
       default_port = redisse.default_port
       return unless default_port
       options[:port] = default_port

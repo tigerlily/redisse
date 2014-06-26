@@ -196,7 +196,7 @@ give a chance for several messages to be sent in a row.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">- (Server) <strong>initialize</strong>(redisse, api) </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">- (Server) <strong>initialize</strong>(redisse) </a>
     
 
     
@@ -317,7 +317,7 @@ give a chance for several messages to be sent in a row.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    - (<tt><span class='object_link'><a href="" title="Redisse::Server (class)">Server</a></span></tt>) <strong>initialize</strong>(redisse, api) 
+    - (<tt><span class='object_link'><a href="" title="Redisse::Server (class)">Server</a></span></tt>) <strong>initialize</strong>(redisse) 
   
 
   
@@ -344,18 +344,16 @@ give a chance for several messages to be sent in a row.</p>
       <pre class="lines">
 
 
-66
-67
-68
-69
-70</pre>
+61
+62
+63
+64</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/redisse/server.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/redisse/server.rb', line 61</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_redisse'>redisse</span><span class='comma'>,</span> <span class='id identifier rubyid_api'>api</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_redisse'>redisse</span><span class='rparen'>)</span>
   <span class='ivar'>@redisse</span> <span class='op'>=</span> <span class='id identifier rubyid_redisse'>redisse</span>
-  <span class='ivar'>@api</span> <span class='op'>=</span> <span class='id identifier rubyid_api'>api</span>
   <span class='kw'>super</span><span class='lparen'>(</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -398,15 +396,15 @@ give a chance for several messages to be sent in a row.</p>
       <pre class="lines">
 
 
-86
-87
-88
-89
-90
-91</pre>
+80
+81
+82
+83
+84
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/redisse/server.rb', line 86</span>
+      <pre class="code"><span class="info file"># File 'lib/redisse/server.rb', line 80</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_close'>on_close</span><span class='lparen'>(</span><span class='id identifier rubyid_env'>env</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_env'>env</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span><span class='lbracket'>[</span><span class='symbol'>:stats</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:connected</span><span class='rbracket'>]</span> <span class='op'>-=</span> <span class='int'>1</span>
@@ -447,16 +445,22 @@ give a chance for several messages to be sent in a row.</p>
       <pre class="lines">
 
 
+195
+196
+197
+198
+199
+200
 201
-202
-203
-204
-205</pre>
+202</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/redisse/server.rb', line 201</span>
+      <pre class="code"><span class="info file"># File 'lib/redisse/server.rb', line 195</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_options_parser'>options_parser</span><span class='lparen'>(</span><span class='id identifier rubyid_opts'>opts</span><span class='comma'>,</span> <span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_opts'>opts</span><span class='period'>.</span><span class='id identifier rubyid_on'>on</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>--redis REDIS_URL</span><span class='tstring_end'>&#39;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>URL of the Redis connection</span><span class='tstring_end'>&#39;</span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_url'>url</span><span class='op'>|</span>
+    <span class='id identifier rubyid_redisse'>redisse</span><span class='period'>.</span><span class='id identifier rubyid_redis_server'>redis_server</span> <span class='op'>=</span> <span class='id identifier rubyid_url'>url</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_default_port'>default_port</span> <span class='op'>=</span> <span class='id identifier rubyid_redisse'>redisse</span><span class='period'>.</span><span class='id identifier rubyid_default_port'>default_port</span>
   <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id identifier rubyid_default_port'>default_port</span>
   <span class='id identifier rubyid_options'>options</span><span class='lbracket'>[</span><span class='symbol'>:port</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_default_port'>default_port</span>
@@ -494,26 +498,26 @@ give a chance for several messages to be sent in a row.</p>
       <pre class="lines">
 
 
+66
+67
+68
+69
+70
+71
 72
 73
 74
 75
 76
 77
-78
-79
-80
-81
-82
-83
-84</pre>
+78</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/redisse/server.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/redisse/server.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_response'>response</span><span class='lparen'>(</span><span class='id identifier rubyid_env'>env</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_not_acceptable'>not_acceptable</span> <span class='kw'>unless</span> <span class='id identifier rubyid_acceptable?'>acceptable?</span><span class='lparen'>(</span><span class='id identifier rubyid_env'>env</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_channels'>channels</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='ivar'>@api</span><span class='period'>.</span><span class='id identifier rubyid_channels'>channels</span><span class='lparen'>(</span><span class='id identifier rubyid_env'>env</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_channels'>channels</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_redisse'>redisse</span><span class='period'>.</span><span class='id identifier rubyid_channels'>channels</span><span class='lparen'>(</span><span class='id identifier rubyid_env'>env</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_not_found'>not_found</span> <span class='kw'>if</span> <span class='id identifier rubyid_channels'>channels</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
   <span class='id identifier rubyid_subscribe'>subscribe</span><span class='lparen'>(</span><span class='id identifier rubyid_env'>env</span><span class='comma'>,</span> <span class='id identifier rubyid_channels'>channels</span><span class='rparen'>)</span> <span class='kw'>or</span> <span class='kw'>return</span> <span class='id identifier rubyid_service_unavailable'>service_unavailable</span>
   <span class='id identifier rubyid_send_history_events'>send_history_events</span><span class='lparen'>(</span><span class='id identifier rubyid_env'>env</span><span class='comma'>,</span> <span class='id identifier rubyid_channels'>channels</span><span class='rparen'>)</span>
@@ -534,7 +538,7 @@ give a chance for several messages to be sent in a row.</p>
 </div>
 
     <div id="footer">
-  Generated on Thu Jun 19 00:47:41 2014 by
+  Generated on Thu Jun 26 12:47:53 2014 by
   <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.8.7.4 (ruby-2.1.2).
 </div>

@@ -83,9 +83,13 @@ Configure Redisse (e.g. in `config/initializers/redisse.rb`):
 
 Use the endpoint in your main application (in config.ru or your router):
 
+    # config.ru Rack
     map "/events" do
       run Redisse.redirect_endpoint
     end
+
+    # config/routes.rb Rails
+    get "/events" => Redisse.redirect_endpoint
 
 Run the server:
 

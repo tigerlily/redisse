@@ -93,10 +93,12 @@ Use the endpoint in your main application (in config.ru or your router):
 
 Run the server:
 
-    $ redisse --stdout --verbose
+    $ bundle exec redisse --stdout --verbose
 
-Get ready to receive events:
+Get ready to receive events (with [HTTPie](http://httpie.org/) or
+[cURL](https://curl.haxx.se)):
 
+    $ http localhost:8080/events Accept:text/event-stream --stream
     $ curl localhost:8080 -H 'Accept: text/event-stream'
 
 Send a Server-Sent Event:

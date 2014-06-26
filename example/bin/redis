@@ -4,8 +4,9 @@ require 'dotenv'
 Dotenv.load
 
 puts "Starting Redis server on 127.0.0.1:#{ENV['REDIS_PORT']}"
+daemonize = $stdin.tty? ? 'no' : 'yes'
 Process.exec 'redis-server ' \
-  '--daemonize yes '         \
+  "--daemonize #{daemonize} "\
   '--pidfile redis.pid '     \
   '--port $REDIS_PORT '      \
   '--bind 127.0.0.1 '        \

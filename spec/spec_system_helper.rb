@@ -141,19 +141,30 @@ shared_context "system" do
   end
 
   class Server
-    def initialize(command, port)
+    def initialize(command, port, pidfile: nil)
       @command = command
       @port = port
+      @pidfile = pidfile
       check_tcp
       start
     end
 
     def start
       @pid = Process.spawn("#@command", %i(in out err) => :close)
+      if @pidfile
+        wait
+        @pid = nil
+        sleep(0.1) until File.exist?(@pidfile)
+        @pid = File.read(@pidfile).to_i if File.exist?(@pidfile)
+      end
     end
 
     def wait
-      Process.wait(@pid)
+      if @pidfile
+        sleep(0.1) while File.exists?(@pidfile)
+      else
+        Process.wait(@pid)
+      end
     rescue Errno::ESRCH
     end
 

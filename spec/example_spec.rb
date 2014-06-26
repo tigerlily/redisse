@@ -14,7 +14,7 @@ describe "Example" do
 
   describe "basic tests" do
     before :context do
-      @redis   = run_server "#{BIN}redis",       REDIS_PORT
+      @redis   = run_server "#{BIN}redis",       REDIS_PORT, pidfile: 'redis.pid'
       @redisse = run_server "#{GEM_BIN}redisse", REDISSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
@@ -162,7 +162,7 @@ describe "Example" do
 
   describe "Redis failures" do
     before :context do
-      @redis   = run_server "#{BIN}redis",       REDIS_PORT
+      @redis   = run_server "#{BIN}redis",       REDIS_PORT, pidfile: 'redis.pid'
       @redisse = run_server "#{GEM_BIN}redisse", REDISSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp

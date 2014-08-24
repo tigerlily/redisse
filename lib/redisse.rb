@@ -56,7 +56,8 @@ module Redisse
   #     console.log(e.data) // logs 'Hello, World!'
   #   }, false)
   def publish(channel, message)
-    type, message = Hash(message).first if message.respond_to?(:to_h)
+    message = message.to_h if message.respond_to?(:to_h)
+    type, message = message.first if Hash === message
     type ||= :message
     publisher.publish(channel, message, type)
   end
@@ -161,7 +162,8 @@ module Redisse
     @redirect_endpoint ||= RedirectEndpoint.new self
   end
 
-  autoload :RedirectEndpoint, __dir__ + '/redisse/redirect_endpoint'
+  dir = File.dirname File.expand_path __FILE__
+  autoload :RedirectEndpoint, dir + '/redisse/redirect_endpoint'
 
 private
 

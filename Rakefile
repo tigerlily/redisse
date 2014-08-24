@@ -20,9 +20,15 @@ end
 
 begin
   require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:spec) do |task|
-    task.pattern = "{example/,}" + task.pattern
+  RSpec::Core::RakeTask.new(:example_spec) do |task|
+    task.pattern = "example/" + task.pattern
   end
-  task :default => :spec
+  RSpec::Core::RakeTask.new(:server_spec)
+  task :spec => [:example_spec, :server_spec]
+  if RUBY_VERSION < '2'
+    task :default => :example_spec
+  else
+    task :default => :spec
+  end
 rescue LoadError
 end

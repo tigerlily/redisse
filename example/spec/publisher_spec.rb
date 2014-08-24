@@ -47,7 +47,7 @@ describe "Publishing events" do
     end
 
     it "filters with a Proc" do
-      Events.test_filter = -> type { %i(foo bar).include? type }
+      Events.test_filter = -> type { [:foo, :bar].include? type }
       Events.publish :global, foo: 'bar'
       Events.publish :global, bar: 'bar'
       Events.publish :global, baz: 'bar'

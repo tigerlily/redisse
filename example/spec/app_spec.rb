@@ -1,6 +1,6 @@
 require 'rack/test'
 
-$app, _opts = Rack::Builder.parse_file __dir__ + '/../config.ru'
+$app, _opts = Rack::Builder.parse_file File.expand_path __FILE__ + '/../../config.ru'
 
 describe "Example App" do
   include Rack::Test::Methods

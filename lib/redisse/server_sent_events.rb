@@ -3,13 +3,12 @@ module Redisse
 
   module_function
 
-    def server_sent_event(data, type: nil, id: nil, **options)
-      data = String(data)
+    def server_sent_event(data, options = {})
       str = ''
       str << "retry: #{options[:retry]}\n" if options[:retry]
-      str << "id: #{id}\n" if id
-      str << "event: #{type}\n" if type
-      str << "data: " + data.gsub("\n", "\ndata: ") + "\n"
+      str <<    "id: #{options[:id]}\n"    if options[:id]
+      str << "event: #{options[:type]}\n"  if options[:type]
+      str <<  "data: " + String(data).gsub("\n", "\ndata: ") + "\n"
       str << "\n"
     end
 

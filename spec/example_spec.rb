@@ -7,22 +7,19 @@ REDISSE_PORT  = ENV['REDISSE_PORT']
 REDISSE_REDIS = ENV['REDISSE_REDIS']
 
 describe "Example" do
-  BIN = __dir__ + '/../example/bin/'
-  GEM_BIN = __dir__ + '/../bin/'
-
   include_context "system"
 
   describe "basic tests" do
     before :context do
-      @redis   = run_server "#{BIN}redis",       REDIS_PORT, pidfile: 'redis.pid'
-      @redisse = run_server "#{GEM_BIN}redisse", REDISSE_PORT
+      @redis   = run_server "example/bin/redis", REDIS_PORT,   pidfile: 'redis.pid'
+      @redisse = run_server "bin/redisse",       REDISSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
     end
 
     after :context do
-      @redis.stop
-      @redisse.stop
+      @redis.stop if @redis
+      @redisse.stop if @redisse
     end
 
     it "refuses a connection with 406 without proper Accept header" do
@@ -162,15 +159,15 @@ describe "Example" do
 
   describe "Redis failures" do
     before :context do
-      @redis   = run_server "#{BIN}redis",       REDIS_PORT, pidfile: 'redis.pid'
-      @redisse = run_server "#{GEM_BIN}redisse", REDISSE_PORT
+      @redis   = run_server "example/bin/redis", REDIS_PORT,   pidfile: 'redis.pid'
+      @redisse = run_server "bin/redisse",       REDISSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
     end
 
     after :context do
-      @redis.stop
-      @redisse.stop
+      @redis.stop if @redis
+      @redisse.stop if @redisse
     end
 
     it "disconnects then refuses connections with 503" do
@@ -190,7 +187,7 @@ describe "Example" do
 
   def publish(channel, type, data, count: nil)
     count = "N=#{count}" if count
-    output = `#{BIN}/publish '#{channel}' '#{type}' '#{data}' #{count}`
+    output = `#{__dir__}/../example/bin/publish '#{channel}' '#{type}' '#{data}' #{count}`
     output[/(\d+)/, 1]
   end
 

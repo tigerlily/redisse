@@ -2,6 +2,7 @@ require 'spec_helper'
 require 'socket'
 require 'net/http'
 require 'strscan'
+require 'English'
 
 shared_context "system" do
   # Classes are not accessible from before, after hooks
@@ -141,6 +142,8 @@ shared_context "system" do
   end
 
   class Server
+    ROOT = File.expand_path __dir__ + '/..'
+
     def initialize(command, port, pidfile: nil)
       @command = command
       @port = port
@@ -150,30 +153,55 @@ shared_context "system" do
     end
 
     def start
-      @pid = Process.spawn("#@command", %i(in out err) => :close)
-      if @pidfile
-        wait
-        @pid = nil
+      @pid = Process.spawn("#{ROOT}/#@command", %i(in out err) => :close)
+      @pid = pid_from_pidfile if @pidfile
+      fail "#@command could not be started" unless @pid
+    end
+
+    def pid_from_pidfile
+      wait
+      @pid = nil
+      return unless $CHILD_STATUS.success?
+      wait_pidfile
+      File.read(@pidfile).to_i
+    end
+
+    def wait_pidfile
+      Timeout.timeout(5) do
         sleep(0.1) until File.exist?(@pidfile)
-        @pid = File.read(@pidfile).to_i if File.exist?(@pidfile)
       end
+    rescue Timeout::Error
+      fail "Server did not write pid to #@pidfile"
+    end
+
+    def wait_pidfile_removal
+      Timeout.timeout(5) do
+        sleep(0.1) if File.exist?(@pidfile)
+      end
+    rescue Timeout::Error
+      fail "Server did not remove pidfile #@pidfile"
     end
 
     def wait
-      if @pidfile
-        sleep(0.1) while File.exists?(@pidfile)
-      else
-        Process.wait(@pid)
-      end
+      return unless @pid
+      Process.wait(@pid)
     rescue Errno::ESRCH
     end
 
     def stop
       return unless @pid
       Process.kill("TERM", @pid)
-      wait
+      wait_stopped
     ensure
       @pid = nil
+    end
+
+    def wait_stopped
+      if @pidfile
+        wait_pidfile_removal
+      else
+        wait
+      end
     end
 
     def wait_tcp

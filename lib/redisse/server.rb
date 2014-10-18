@@ -186,8 +186,14 @@ private
     end
 
     def acceptable?(env)
-      accept_media_types = Rack::AcceptMediaTypes.new(env['HTTP_ACCEPT'])
-      accept_media_types.include?('text/event-stream')
+      accept_media_types(env).include? 'text/event-stream'
+    end
+
+    def accept_media_types(env)
+      key = 'accept_media_types'.freeze
+      env.fetch(key) do
+        env[key] = Rack::AcceptMediaTypes.new(env['HTTP_ACCEPT'])
+      end
     end
 
   public

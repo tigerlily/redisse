@@ -3,6 +3,12 @@ require 'socket'
 require 'net/http'
 require 'strscan'
 require 'English'
+require 'dotenv'
+Dotenv.load 'example/.env'
+
+REDIS_PORT    = ENV['REDIS_PORT']
+REDISSE_PORT  = ENV['REDISSE_PORT']
+REDISSE_REDIS = ENV['REDISSE_REDIS']
 
 shared_context "system" do
   # Classes are not accessible from before, after hooks

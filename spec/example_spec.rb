@@ -1,10 +1,4 @@
 require 'spec_system_helper'
-require 'dotenv'
-Dotenv.load 'example/.env'
-
-REDIS_PORT    = ENV['REDIS_PORT']
-REDISSE_PORT  = ENV['REDISSE_PORT']
-REDISSE_REDIS = ENV['REDISSE_REDIS']
 
 describe "Example" do
   include_context "system"

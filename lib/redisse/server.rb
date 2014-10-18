@@ -78,8 +78,6 @@ private
     end
 
     def on_close(env)
-      env.status[:stats][:connected] -= 1
-      env.status[:stats][:served]    += 1
       unsubscribe(env)
       stop_heartbeat(env)
     end
@@ -117,6 +115,8 @@ private
       return unless unsubscribe = env['redisse.unsubscribe'.freeze]
       env['redisse.unsubscribe'.freeze] = nil
       env.logger.debug "Unsubscribing".freeze
+      env.status[:stats][:connected] -= 1
+      env.status[:stats][:served]    += 1
       unsubscribe.call
     end
 
@@ -143,7 +143,7 @@ private
       EM::Synchrony.next_tick do
         events = events_for_channels(channels, last_event_id)
         env.logger.debug { "Sending #{events.size} history events" }
-        if (first = events.first) && first.start_with?('type: missedevents')
+        if (first = events.first) && first.start_with?('event: missedevents')
           env.status[:stats][:missing] += 1
         end
         events.each { |event| send_event(env, event) }

@@ -54,10 +54,11 @@ shared_context "system" do
     def close
       @thread.raise CloseConnection
       loop while pop_event
+      @connected = false
     end
 
     def connected?
-      return Net::HTTPOK === response && !@closed
+      @connected
     end
 
     # #each is blocking while the connection persists
@@ -97,27 +98,29 @@ shared_context "system" do
       end
     rescue CloseConnection
     ensure
-      @closed = true
+      @connected = false
       @queue << :over
     end
 
     def response=(response)
       @response = response
+      @connected = Net::HTTPOK === response
       @scanner = EventScanner.new { |event| @queue << event }
-      @queue << :connected
+      @queue << :response
     end
 
     def read_events
       @response.read_body do |segment|
         @scanner << segment
-        break if @closed
+        break unless @connected
       end
     end
 
     def pop_event
       return unless connected?
       event = @queue.pop
-      event if event != :over
+      return if event == :over
+      event
     end
   end
 

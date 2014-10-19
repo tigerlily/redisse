@@ -75,6 +75,26 @@ shared_context "system" do
       @scanner.full_stream
     end
 
+    def connection_failure
+      close
+    end
+
+    def reconnect
+      connect unless connected?
+    end
+
+    def ensure_last_event_id
+      return if @last_event_id
+      Timeout.timeout(0.1) do
+        event = pop_event
+        unless event.type == 'lastEventId'
+          fail "received a real event, not just a lastEventId event: #{event}"
+        end
+      end
+    rescue Timeout::Error
+      fail "server has not returned any id to be used for LastEventId"
+    end
+
   private
 
     def connect
@@ -120,6 +140,7 @@ shared_context "system" do
       return unless connected?
       event = @queue.pop
       return if event == :over
+      @last_event_id = event.id if event.id
       event
     end
   end

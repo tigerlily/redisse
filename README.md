@@ -26,6 +26,10 @@ application, and serving them to your clients.
 * **`missedevents` event fired** when the full requested history could not be
   found, to allow the client to handle the case where events were missed.
 
+* **`lastEventId` event fired** after connection if no event was sent, to make
+  sure the client doesn't miss any event if the connection fails before a
+  regular event is sent.
+
 * **Event types** from SSE are left untouched for your application code, but
   keep in mind that a client will receive events of all types from their
   channels. To handle access rights, use channels instead.

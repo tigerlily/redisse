@@ -42,6 +42,7 @@ private
   # See {Redisse#run}.
   class Server < Goliath::API
     require 'redisse/server/stats'
+    include Stats::Endpoint
     require 'redisse/server/responses'
     include Responses
     require 'redisse/server/redis'
@@ -64,6 +65,7 @@ private
     end
 
     def response(env)
+      return server_stats(env) if server_stats?(env)
       return not_acceptable unless acceptable?(env)
       channels = Array(redisse.channels(env))
       return not_found if channels.empty?

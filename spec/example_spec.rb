@@ -171,7 +171,6 @@ describe "Example" do
       end
 
       example "metrics change properly" do
-        expect(stats['connected']).to be == 0
         expect {
           event_id = publish :global, :foo, :last
           publish :global, :foo, :missed
@@ -185,9 +184,10 @@ describe "Example" do
               expect(stats['connected']).to be == 2
             end
           end
-        }.to change { Vector[*stats.values_at(*%w[served events missing])] }
-        .by(Vector[2,1+history_size+3,1])
-        expect(stats['connected']).to be == 0
+        }.to change { stats['served']    }.by(2)
+        .and change { stats['events']    }.by(1 + history_size + 3)
+        .and change { stats['missing']   }.by(1)
+        .and change { stats['connected'] }.by(0)
       end
 
       def stats

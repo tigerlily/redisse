@@ -105,6 +105,21 @@ Send a Server-Sent Event:
 
     Redisse.publish('global', success: "It's working!")
 
+Check out the stats from you server
+
+    $ http localhost:8080 Accept:application/json
+    $ curl localhost:8080 -H 'Accept: application/json'
+
+    {
+      "connected": 2,
+      "served":    3,
+      "events":    42,
+      "missing":   0,
+    }
+
+See [what the stats
+mean](https://github.com/tigerlily/redisse/blob/master/lib/redisse/server/stats.rb#L6-L16).
+
 ### Testing
 
 In the traditional Rack app specs or tests, use `Redisse.test_mode!`:

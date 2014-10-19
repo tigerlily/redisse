@@ -156,6 +156,50 @@ describe "Example" do
       expect(events.first(history_size - 1).map(&:type)).to all be == 'foo'
       expect(events.last(history_size).map(&:type))     .to all be == 'bar'
     end
+
+    describe "stats" do
+      example "have the proper Content-Type" do
+        uri = URI redisse_url
+        Net::HTTP.start(uri.host, uri.port) do |http|
+          response = http.get uri, 'Accept' => 'application/json'
+          expect(response['Content-Type']).to be == 'application/json'
+        end
+      end
+
+      example "have some useful metrics" do
+        expect(stats.keys).to match_array %w[connected served events missing]
+      end
+
+      example "metrics change properly" do
+        expect(stats['connected']).to be == 0
+        expect {
+          event_id = publish :global, :foo, :last
+          publish :global, :foo, :missed
+          publish :global, :foo, :foo_data, count: history_size
+          EventReader.open redisse_url(:global), event_id do |reader|
+            publish :global, :foo, :bar
+            publish :global, :foo, :baz
+            publish :global, :foo, :baz
+            expect(stats['connected']).to be == 1
+            EventReader.open redisse_url(:global) do
+              expect(stats['connected']).to be == 2
+            end
+          end
+        }.to change { Vector[*stats.values_at(*%w[served events missing])] }
+        .by(Vector[2,1+history_size+3,1])
+        expect(stats['connected']).to be == 0
+      end
+
+      def stats
+        uri = URI redisse_url
+        Net::HTTP.start(uri.host, uri.port) do |http|
+          response = http.get uri, 'Accept' => 'application/json'
+          JSON.parse response.body
+        end
+      end
+
+    end
+
   end
 
   describe "Redis failures" do

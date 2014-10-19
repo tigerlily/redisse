@@ -42,6 +42,7 @@ private
   # See {Redisse#run}.
   class Server < Goliath::API
     require 'redisse/server/stats'
+    include Stats::Endpoint
     require 'redisse/server/responses'
     include Responses
     require 'redisse/server/redis'
@@ -64,6 +65,7 @@ private
     end
 
     def response(env)
+      return server_stats(env) if server_stats?(env)
       return not_acceptable unless acceptable?(env)
       channels = Array(redisse.channels(env))
       return not_found if channels.empty?
@@ -78,8 +80,6 @@ private
     end
 
     def on_close(env)
-      env.status[:stats][:connected] -= 1
-      env.status[:stats][:served]    += 1
       unsubscribe(env)
       stop_heartbeat(env)
     end
@@ -117,6 +117,8 @@ private
       return unless unsubscribe = env['redisse.unsubscribe'.freeze]
       env['redisse.unsubscribe'.freeze] = nil
       env.logger.debug "Unsubscribing".freeze
+      env.status[:stats][:connected] -= 1
+      env.status[:stats][:served]    += 1
       unsubscribe.call
     end
 
@@ -143,7 +145,7 @@ private
       EM::Synchrony.next_tick do
         events = events_for_channels(channels, last_event_id)
         env.logger.debug { "Sending #{events.size} history events" }
-        if (first = events.first) && first.start_with?('type: missedevents')
+        if (first = events.first) && first.start_with?('event: missedevents')
           env.status[:stats][:missing] += 1
         end
         events.each { |event| send_event(env, event) }
@@ -186,8 +188,14 @@ private
     end
 
     def acceptable?(env)
-      accept_media_types = Rack::AcceptMediaTypes.new(env['HTTP_ACCEPT'])
-      accept_media_types.include?('text/event-stream')
+      accept_media_types(env).include? 'text/event-stream'
+    end
+
+    def accept_media_types(env)
+      key = 'accept_media_types'.freeze
+      env.fetch(key) do
+        env[key] = Rack::AcceptMediaTypes.new(env['HTTP_ACCEPT'])
+      end
     end
 
   public

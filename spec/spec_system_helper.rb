@@ -3,6 +3,8 @@ require 'socket'
 require 'net/http'
 require 'strscan'
 require 'English'
+require 'json'
+require 'matrix'
 require 'dotenv'
 Dotenv.load 'example/.env'
 

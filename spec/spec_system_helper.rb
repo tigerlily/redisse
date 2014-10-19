@@ -48,7 +48,7 @@ shared_context "system" do
       connect
     end
 
-    attr_reader :response
+    attr_reader :response, :last_event_id
 
     CloseConnection = Class.new StandardError
     def close
@@ -65,7 +65,7 @@ shared_context "system" do
     # call #close in the given block to make #each return
     def each
       return enum_for(:each) unless block_given?
-      while event = pop_event
+      while event = next_event
         yield event
       end
     end
@@ -134,6 +134,12 @@ shared_context "system" do
         @scanner << segment
         break unless @connected
       end
+    end
+
+    def next_event
+      return unless event = pop_event
+      event = pop_event if event.type == 'lastEventId'
+      event
     end
 
     def pop_event

@@ -109,7 +109,6 @@ describe "Example" do
     it "sends a heartbeat", :slow do
       reader = EventReader.open redisse_url :global
       expect(reader).to be_connected
-      expect(reader.full_stream).to be_empty
       sleep(16)
       expect(reader.full_stream).to match(/^: hb$/)
       reader.close
@@ -202,9 +201,10 @@ describe "Example" do
             end
           end
         }.to change { stats['served']    }.by(2)
-        .and change { stats['events']    }.by(1 + history_size + 3)
         .and change { stats['missing']   }.by(1)
         .and change { stats['connected'] }.by(0)
+        .and change { stats['events']    }.by(1 + 1 + history_size + 3)
+        # lastEventId + missed + history + 3
       end
 
       def stats
@@ -282,7 +282,6 @@ describe "Example" do
     example "avoid missed events thanks to the lastEventId event" do
       id = publish :global, :foo, :bar # Redis DB might be completely empty
       EventReader.open redisse_url :global do |reader|
-        pending "lastEventId support"
         reader.ensure_last_event_id
         expect(reader.last_event_id).to be == id
         reader.connection_failure

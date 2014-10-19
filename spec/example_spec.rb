@@ -17,10 +17,9 @@ describe "Example" do
     end
 
     it "refuses a connection with 406 without proper Accept header" do
-      uri = URI(redisse_url)
+      uri = URI redisse_url
       Net::HTTP.start(uri.host, uri.port) do |http|
-        request = Net::HTTP::Get.new uri
-        response = http.request request
+        response = http.request_get uri
         expect(response.code).to be == "406"
       end
     end
@@ -29,6 +28,14 @@ describe "Example" do
       reader = EventReader.open redisse_url
       expect(reader).not_to be_connected
       expect(reader.response.code).to be == "404"
+    end
+
+    it "returns a Content-Type of text/event-stream" do
+      EventReader.open redisse_url(:global) do |reader|
+        expect(reader).to be_connected
+        expect(reader.response.code).to be == "200"
+        expect(reader.response['Content-Type']).to be == 'text/event-stream'
+      end
     end
 
     it "receives a message" do

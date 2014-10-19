@@ -98,7 +98,7 @@ Run the server:
 Get ready to receive events (with [HTTPie](http://httpie.org/) or
 [cURL](https://curl.haxx.se)):
 
-    $ http localhost:8080/events Accept:text/event-stream --stream
+    $ http localhost:8080 Accept:text/event-stream --stream
     $ curl localhost:8080 -H 'Accept: text/event-stream'
 
 Send a Server-Sent Event:

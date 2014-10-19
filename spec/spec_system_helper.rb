@@ -45,18 +45,15 @@ shared_context "system" do
       @uri = URI(uri)
       @last_event_id = last_event_id
       @queue = Queue.new
-      @thread = Thread.new { connect }
-      @thread.abort_on_exception = true
-      event = @queue.pop
-      fail ':connected expected' unless event == :connected
+      connect
     end
 
     attr_reader :response
 
     CloseConnection = Class.new StandardError
     def close
-      @closed_at = Time.now.to_f
       @thread.raise CloseConnection
+      loop while pop_event
     end
 
     def connected?
@@ -67,8 +64,7 @@ shared_context "system" do
     # call #close in the given block to make #each return
     def each
       return enum_for(:each) unless block_given?
-      return unless connected?
-      while (event = @queue.pop) != :over
+      while event = pop_event
         yield event
       end
     end
@@ -81,6 +77,11 @@ shared_context "system" do
   private
 
     def connect
+      @thread = Thread.new { thread_connect }
+      fail ':response expected' unless @queue.pop == :response
+    end
+
+    def thread_connect
       Net::HTTP.start(@uri.host, @uri.port) do |http|
         response_received = false
         headers = { 'Accept' => 'text/event-stream' }
@@ -111,6 +112,12 @@ shared_context "system" do
         @scanner << segment
         break if @closed
       end
+    end
+
+    def pop_event
+      return unless connected?
+      event = @queue.pop
+      event if event != :over
     end
   end
 

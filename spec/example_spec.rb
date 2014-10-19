@@ -68,25 +68,42 @@ describe "Example" do
       reader_2.close
     end
 
-    it "closes the connection after a second with long polling" do
-      reader = EventReader.open redisse_url :global, :polling
-      expect(reader).to be_connected
-      publish :global, :foo, :bar
-      time = Time.now.to_f
-      publish :global, :foo, :baz
-      received = nil
-      expect {
+    describe "long polling" do
+      it "keeps the connection open when there's no event", :slow do
+        reader = EventReader.open redisse_url :global, :polling
+        expect(reader).to be_connected
+        received = nil
         begin
           Timeout.timeout(2) do
             received = reader.each.to_a
           end
         rescue Timeout::Error
         end
+        expect(reader).to be_connected
+        expect(received).to be_nil
+        reader.close
+      end
+
+      it "closes the connection after a second after an event" do
+        reader = EventReader.open redisse_url :global, :polling
+        expect(reader).to be_connected
+        publish :global, :foo, :bar
         time = Time.now.to_f
-      }.to change { time }.by(a_value_within(0.2).of(1.0))
-      expect(reader).not_to be_connected
-      expect(received.size).to be == 2
-      expect(received.map(&:data)).to be == %w(bar baz)
+        publish :global, :foo, :baz
+        received = nil
+        expect {
+          begin
+            Timeout.timeout(2) do
+              received = reader.each.to_a
+            end
+          rescue Timeout::Error
+          end
+          time = Time.now.to_f
+        }.to change { time }.by(a_value_within(0.2).of(1.0))
+        expect(reader).not_to be_connected
+        expect(received.size).to be == 2
+        expect(received.map(&:data)).to be == %w(bar baz)
+      end
     end
 
     it "sends a heartbeat", :slow do

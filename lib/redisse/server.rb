@@ -151,8 +151,8 @@ private
     end
 
     def last_event_id(env)
-      last_event_id = env['HTTP_LAST_EVENT_ID'] ||
-        Rack::Request.new(env).GET['lastEventId']
+      last_event_id = env['HTTP_LAST_EVENT_ID'.freeze] ||
+        Rack::Request.new(env).GET['lastEventId'.freeze]
       last_event_id = last_event_id.to_i
       last_event_id.nonzero? && last_event_id
     end

@@ -48,7 +48,7 @@ shared_context "system" do
       connect
     end
 
-    attr_reader :response
+    attr_reader :response, :last_event_id
 
     CloseConnection = Class.new StandardError
     def close
@@ -65,7 +65,7 @@ shared_context "system" do
     # call #close in the given block to make #each return
     def each
       return enum_for(:each) unless block_given?
-      while event = pop_event
+      while event = next_event
         yield event
       end
     end
@@ -73,6 +73,26 @@ shared_context "system" do
     def full_stream
       raise "No stream: response was #@response" unless @scanner
       @scanner.full_stream
+    end
+
+    def connection_failure
+      close
+    end
+
+    def reconnect
+      connect unless connected?
+    end
+
+    def ensure_last_event_id
+      return if @last_event_id
+      Timeout.timeout(0.1) do
+        event = pop_event
+        unless event.type == 'lastEventId'
+          fail "received a real event, not just a lastEventId event: #{event}"
+        end
+      end
+    rescue Timeout::Error
+      fail "server has not returned any id to be used for LastEventId"
     end
 
   private
@@ -116,10 +136,17 @@ shared_context "system" do
       end
     end
 
+    def next_event
+      return unless event = pop_event
+      event = pop_event if event.type == 'lastEventId'
+      event
+    end
+
     def pop_event
       return unless connected?
       event = @queue.pop
       return if event == :over
+      @last_event_id = event.id if event.id
       event
     end
   end

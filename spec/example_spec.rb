@@ -109,7 +109,6 @@ describe "Example" do
     it "sends a heartbeat", :slow do
       reader = EventReader.open redisse_url :global
       expect(reader).to be_connected
-      expect(reader.full_stream).to be_empty
       sleep(16)
       expect(reader.full_stream).to match(/^: hb$/)
       reader.close
@@ -202,9 +201,10 @@ describe "Example" do
             end
           end
         }.to change { stats['served']    }.by(2)
-        .and change { stats['events']    }.by(1 + history_size + 3)
         .and change { stats['missing']   }.by(1)
         .and change { stats['connected'] }.by(0)
+        .and change { stats['events']    }.by(1 + 1 + history_size + 3)
+        # lastEventId + missed + history + 3
       end
 
       def stats
@@ -243,6 +243,57 @@ describe "Example" do
       reader = EventReader.open redisse_url :global
       expect(reader).not_to be_connected
       expect(reader.response.code).to be == "503"
+    end
+
+  end
+
+  describe "Connection failures" do
+    before :context do
+      @redis   = run_server "example/bin/redis", REDIS_PORT,   pidfile: 'redis.pid'
+      @redisse = run_server "bin/redisse",       REDISSE_PORT
+      @redis.wait_tcp
+      @redisse.wait_tcp
+    end
+
+    after :context do
+      @redis.stop if @redis
+      @redisse.stop if @redisse
+    end
+
+    example "usually result in use of Last-Event-Id" do
+      EventReader.open redisse_url :global do |reader|
+        expect(reader).to be_connected
+        publish :global, :foo, :bar
+        expect(reader.each.first).to be
+        reader.connection_failure
+        expect(reader).not_to be_connected
+        publish :global, :foo, :baz
+        reader.reconnect
+        expect(reader).to be_connected
+        event = nil
+        Timeout.timeout(0.1) do
+          event = reader.each.first
+        end
+        expect(event.type).to be == 'foo'
+        expect(event.data).to be == 'baz'
+      end
+    end
+
+    example "avoid missed events thanks to the lastEventId event" do
+      id = publish :global, :foo, :bar # Redis DB might be completely empty
+      EventReader.open redisse_url :global do |reader|
+        reader.ensure_last_event_id
+        expect(reader.last_event_id).to be == id
+        reader.connection_failure
+        publish :global, :foo, :baz
+        reader.reconnect
+        event = nil
+        Timeout.timeout(0.1) do
+          event = reader.each.first
+        end
+        expect(event.type).to be == 'foo'
+        expect(event.data).to be == 'baz'
+      end
     end
 
   end

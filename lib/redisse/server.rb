@@ -70,7 +70,7 @@ private
       channels = Array(redisse.channels(env))
       return not_found if channels.empty?
       subscribe(env, channels) or return service_unavailable
-      send_history_events(env, channels)
+      history_events(env, channels)
       heartbeat(env)
       streaming_response(200, {
         'Content-Type' => 'text/event-stream',
@@ -122,11 +122,11 @@ private
       unsubscribe.call
     end
 
-    def send_event(env, event)
+    def send_event(env, event, polling = long_polling?(env))
       env.status[:stats][:events] += 1
       env.logger.debug { "Sending:\n#{event.chomp.chomp}" }
       env.stream_send(event)
-      return unless long_polling?(env)
+      return unless polling
       env["redisse.long_polling_timer".freeze] ||= EM.add_timer(LONG_POLLING_DELAY) do
         env.stream_close
       end
@@ -139,17 +139,32 @@ private
       end
     end
 
+    def history_events(env, channels)
+      EM::Synchrony.next_tick do
+        send_history_events(env, channels)
+      end
+    end
+
     def send_history_events(env, channels)
       last_event_id = last_event_id(env)
-      return unless last_event_id
-      EM::Synchrony.next_tick do
-        events = events_for_channels(channels, last_event_id)
-        env.logger.debug { "Sending #{events.size} history events" }
-        if (first = events.first) && first.start_with?('event: missedevents')
-          env.status[:stats][:missing] += 1
-        end
-        events.each { |event| send_event(env, event) }
+      events = events_for_channels(channels, last_event_id) if last_event_id
+      first = events.first if events
+      id = redis_last_event_id unless first
+      send_event(env, LAST_EVENT_ID_EVENT % id, false) if id
+      return unless first
+      if first.start_with?('event: missedevents')
+        env.status[:stats][:missing] += 1
       end
+      env.logger.debug { "Sending #{events.size} history events" }
+      events.each { |event| send_event(env, event) }
+    end
+
+    LAST_EVENT_ID_EVENT = ServerSentEvents.server_sent_event(nil,
+      type: :lastEventId, id: '%s').freeze
+
+    def redis_last_event_id
+      df = redis.get(RedisPublisher::REDISSE_LAST_EVENT_ID)
+      EM::Synchrony.sync(df)
     end
 
     def last_event_id(env)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"runtime"
 
 	"bitbucket.org/ww/goautoneg"
@@ -105,7 +106,17 @@ func receiveUntil(pubsub *redis.PubSubConn, stop <-chan bool, channels ...string
 }
 
 func channels(r *http.Request) []string {
-	return []string{"global", "other", "all"}
+	values, err := url.ParseQuery(r.URL.RawQuery)
+	channels := make([]string, len(values))
+	if err != nil {
+		return channels
+	}
+	i := 0
+	for channel := range values {
+		channels[i] = channel
+		i++
+	}
+	return channels
 }
 
 // HTTP stream

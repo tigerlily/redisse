@@ -57,7 +57,7 @@ func connectPubSub() (*redis.PubSubConn, error) {
 	if err != nil {
 		panic(fmt.Sprintf("Connection failed: %s", redisAddr))
 	}
-	return &redis.PubSubConn{conn}, err
+	return &redis.PubSubConn{Conn: conn}, err
 }
 
 func subscribe(s stream, r *http.Request) {

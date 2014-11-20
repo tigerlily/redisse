@@ -7,7 +7,9 @@ require 'json'
 require 'dotenv'
 Dotenv.load 'example/.env'
 
+REDIS_BIN     = ENV['REDIS_BIN']
 REDIS_PORT    = ENV['REDIS_PORT']
+REDISSE_BIN   = ENV['REDISSE_BIN']
 REDISSE_PORT  = ENV['REDISSE_PORT']
 REDISSE_REDIS = ENV['REDISSE_REDIS']
 

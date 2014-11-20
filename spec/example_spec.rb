@@ -5,8 +5,8 @@ describe "Example" do
 
   describe "basic tests" do
     before :context do
-      @redis   = run_server "example/bin/redis", REDIS_PORT,   pidfile: 'redis.pid'
-      @redisse = run_server "bin/redisse",       REDISSE_PORT
+      @redis   = run_server REDIS_BIN,   REDIS_PORT,   pidfile: 'redis.pid'
+      @redisse = run_server REDISSE_BIN, REDISSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
     end
@@ -221,8 +221,8 @@ describe "Example" do
 
   describe "Redis failures" do
     before :context do
-      @redis   = run_server "example/bin/redis", REDIS_PORT,   pidfile: 'redis.pid'
-      @redisse = run_server "bin/redisse",       REDISSE_PORT
+      @redis   = run_server REDIS_BIN,   REDIS_PORT,   pidfile: 'redis.pid'
+      @redisse = run_server REDISSE_BIN, REDISSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
     end
@@ -249,8 +249,8 @@ describe "Example" do
 
   describe "Connection failures" do
     before :context do
-      @redis   = run_server "example/bin/redis", REDIS_PORT,   pidfile: 'redis.pid'
-      @redisse = run_server "bin/redisse",       REDISSE_PORT
+      @redis   = run_server REDIS_BIN,   REDIS_PORT,   pidfile: 'redis.pid'
+      @redisse = run_server REDISSE_BIN, REDISSE_PORT
       @redis.wait_tcp
       @redisse.wait_tcp
     end

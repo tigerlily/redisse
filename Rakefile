@@ -1,4 +1,5 @@
 require "bundler/gem_tasks"
+require "rake/clean"
 
 begin
   require 'yard'
@@ -26,3 +27,15 @@ begin
   task :default => :spec
 rescue LoadError
 end
+
+task :go => 'redisse' do
+  ENV['REDISSE_BIN'] = 'redisse'
+  Rake::Task['spec'].invoke
+end
+
+file 'redisse' => 'goserver.go' do
+  sh 'go vet'
+  sh 'golint'
+  sh 'go build'
+end
+CLEAN.include 'redisse'

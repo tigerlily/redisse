@@ -30,14 +30,14 @@ func main() {
 const eventStreamMediaType = "text/event-stream"
 
 func response(w http.ResponseWriter, r *http.Request) {
-	fmt.Print("+")
+	log.Print("+")
 	if !isAcceptable(r) {
 		notAcceptable(w)
 		return
 	}
 	s := startStream(w)
 	subscribe(s, r)
-	fmt.Print("-", runtime.NumGoroutine())
+	log.Print("-", runtime.NumGoroutine())
 }
 
 func isAcceptable(r *http.Request) bool {
@@ -57,7 +57,7 @@ func notAcceptable(w http.ResponseWriter) {
 func connectPubSub() (*redis.PubSubConn, error) {
 	conn, err := redis.Dial("tcp", redisAddr)
 	if err != nil {
-		panic(fmt.Sprintf("Connection failed: %s", redisAddr))
+		log.Panicf("Connection failed: %s", redisAddr)
 	}
 	return &redis.PubSubConn{Conn: conn}, err
 }
@@ -78,26 +78,27 @@ func receiveUntil(pubsub *redis.PubSubConn, stop <-chan bool, channels ...string
 		for {
 			switch n := pubsub.Receive().(type) {
 			case redis.Message:
-				fmt.Printf("Message: %s %s\n", n.Channel, n.Data)
+				log.Println("Message:", n.Channel)
+				log.Println(strings.TrimSuffix(string(n.Data), "\n\n"))
 				messages <- string(n.Data)
 			case redis.Subscription:
 				if n.Kind == "unsubscribe" {
 					// Unsubscribe is used to make Receive() return a value but
 					// means we should stop the goroutine
-					fmt.Println("Finishing goroutine", n)
+					log.Println("Finishing goroutine", n)
 					return
 				}
 			case error:
-				fmt.Printf("error: %v\n", n)
+				log.Printf("error: %v\n", n)
 				return
 			default:
-				fmt.Printf("?? %s\n", n)
+				log.Printf("?? %s\n", n)
 			}
 		}
 	}()
 	go func() {
 		<-stop
-		fmt.Println("Stopping by unsubscribing")
+		log.Println("Stopping by unsubscribing")
 		pubsub.Unsubscribe("") // any value will do because it will unblock Receive()
 	}()
 	for _, channel := range channels {

@@ -6,22 +6,23 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"runtime"
+	"strings"
 
 	"bitbucket.org/ww/goautoneg"
 	"github.com/garyburd/redigo/redis"
 )
 
 var redisAddr string
+var addr string
 
 func main() {
-	flag.StringVar(&redisAddr, "redis", ":6379", "Redis server URL")
+	flagEnvStringVar(&redisAddr, "redis", "REDISSE_REDIS", "redis://localhost:6379/", "Redis server URL")
+	flagEnvStringVar(&addr, "listen", "REDISSE_PORT", "localhost:8080", "Redisse binding address")
 	flag.Parse()
-	fmt.Println(redisAddr)
-	addr := flag.Arg(0)
-	if addr == "" {
-		addr = ":8082"
-	}
+	parseRedisAddr()
+	parseAddr()
 	http.HandleFunc("/", response)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
@@ -143,4 +144,56 @@ func startStream(w http.ResponseWriter) stream {
 func (s stream) streamSend(str string) {
 	fmt.Fprint(s, str)
 	s.Flush()
+}
+
+// CLI
+
+func flagEnvStringVar(p *string, name string, envVar string, defaultVal string, usage string) flag.Getter {
+	value := os.Getenv(envVar)
+	if value == "" {
+		value = defaultVal
+	}
+	*p = value
+	s := flag.Getter(&stringEnvValue{p, envVar, defaultVal})
+	flag.Var(s, name, usage) //envVar+" or "+defaultVal)
+	return s
+}
+
+func parseRedisAddr() {
+	u, err := url.Parse(redisAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if u.Scheme != "" && u.Scheme != "redis" {
+		log.Fatalf("redis URL expected, got: %v", u)
+	}
+	redisAddr = u.Host
+}
+
+func parseAddr() {
+	if addr == "" {
+		addr = "localhost:8080"
+	} else if !strings.Contains(addr, ":") {
+		addr = "localhost:" + addr
+	}
+}
+
+type stringEnvValue struct {
+	p          *string
+	envVar     string
+	defaultVal string
+}
+
+func (s *stringEnvValue) Set(value string) error {
+	*s.p = value
+	return nil
+}
+
+func (s *stringEnvValue) Get() interface{} {
+	log.Println(s.envVar, "Get()")
+	return *s.p
+}
+
+func (s *stringEnvValue) String() string {
+	return fmt.Sprintf("%s or %q", s.envVar, *s.p)
 }

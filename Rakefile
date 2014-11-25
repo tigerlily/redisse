@@ -19,6 +19,12 @@ begin
 rescue LoadError
 end
 
+if ENV['GOSPECS']
+  task :default => :go
+else
+  task :default => :spec
+end
+
 begin
   require 'rspec/core/rake_task'
   RSpec::Core::RakeTask.new(:spec) do |task|

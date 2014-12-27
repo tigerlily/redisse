@@ -25,6 +25,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rack-test"
   spec.add_development_dependency "dotenv"
   spec.add_runtime_dependency "goliath"
+  spec.add_runtime_dependency "eventmachine", "~> 1.0.4"
   spec.add_runtime_dependency "em-hiredis"
   spec.add_runtime_dependency "redis"
 end

@@ -33,6 +33,9 @@ application, and serving them to your clients.
   keep in mind that a client will receive events of all types from their
   channels. To handle access rights, use channels instead.
 
+* **Hooks** in order to do custom actions during the (dis)connection of the
+  clients to the server.
+
 ## Rationale
 
 Redisse’s design comes from these requirements:

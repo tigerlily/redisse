@@ -70,6 +70,7 @@ private
       channels = Array(redisse.channels(env))
       return not_found if channels.empty?
       subscribe(env, channels) or return service_unavailable
+      redisse.on_connect(env)
       history_events(env, channels)
       heartbeat(env)
       streaming_response(200, {
@@ -80,6 +81,7 @@ private
     end
 
     def on_close(env)
+      redisse.on_disconnect(env)
       unsubscribe(env)
       stop_heartbeat(env)
     end

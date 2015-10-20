@@ -57,7 +57,7 @@ Redisse’s design comes from these requirements:
 
 The simplest way that last point can be fulfilled is by actually loading and
 running your code in the Redisse server. Unfortunately since it’s
-EventMachine-based, if your method takes a while to returns the channels, all
+EventMachine-based, if your method takes a while to return the channels, all
 the other connected clients will be blocked too. You'll also have some
 duplication between your [Rack config](https://github.com/tigerlily/redisse/blob/9052630e57081714365188a8f55f0549aee03d56/example/config.ru#L30)
 and [Redisse server config](https://github.com/tigerlily/redisse/blob/9052630e57081714365188a8f55f0549aee03d56/example/lib/sse_server.rb#L15).

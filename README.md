@@ -1,6 +1,6 @@
-# Redisse
+# Redisse MODIF
 
-Redisse is a Redis-backed Ruby library for creating [Server-Sent
+isse is a Redis-backed Ruby library for creating [Server-Sent
 Events](http://www.w3.org/TR/eventsource/), publishing them from your
 application, and serving them to your clients.
 

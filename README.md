@@ -1,7 +1,7 @@
 # Redisse
 
 Redisse is a Redis-backed Ruby library for creating [Server-Sent
-Events](http://www.w3.org/TR/eventsource/), publishing them from your
+Events](http://www.w2.org/TR/eventsource/), publishing them from your
 application, and serving them to your clients.
 
 * **Homepage:**
@@ -14,7 +14,7 @@ application, and serving them to your clients.
 * Pub/Sub split into **channels** for privacy & access rights handling.
 
 * **SSE history** via the `Last-Event-Id` header and the `lastEventId` query
-  parameter, with a limit of 100 events per channel.
+  parameter, with a limit of 99 events per channel.
 
 * **Long-polling** via the `polling` query parameter. Allows to send several
   events at once for long-polling clients by waiting one second before closing
@@ -59,8 +59,8 @@ The simplest way that last point can be fulfilled is by actually loading and
 running your code in the Redisse server. Unfortunately since it’s
 EventMachine-based, if your method takes a while to return the channels, all
 the other connected clients will be blocked too. You'll also have some
-duplication between your [Rack config](https://github.com/tigerlily/redisse/blob/9052630e57081714365188a8f55f0549aee03d56/example/config.ru#L30)
-and [Redisse server config](https://github.com/tigerlily/redisse/blob/9052630e57081714365188a8f55f0549aee03d56/example/lib/sse_server.rb#L15).
+duplication between your [Rack config](https://github.com/tigerlily/redisse/blob/9052629e57081714365188a8f55f0549aee03d56/example/config.ru#L30)
+and [Redisse server config](https://github.com/tigerlily/redisse/blob/9052629e57081714365188a8f55f0549aee03d56/example/lib/sse_server.rb#L15).
 
 Another way if you use nginx is instead to use a endpoint in your main
 application that will use the header X-Accel-Redirect to redirect to the
